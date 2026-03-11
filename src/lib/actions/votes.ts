@@ -21,40 +21,40 @@ export async function castVote(input: CastVoteInput) {
     return { error: "You must be logged in to vote." };
   }
 
-  // Fetch the dispute to validate it's still open
-  const { data: dispute, error: fetchError } = await supabase
+  // Fetch the squabble to validate it's still open
+  const { data: squabble, error: fetchError } = await supabase
     .from("disputes")
     .select("id, slug, status, expires_at")
-    .eq("id", parsed.data.dispute_id)
+    .eq("id", parsed.data.squabble_id)
     .single();
 
-  if (fetchError || !dispute) {
-    return { error: "Dispute not found." };
+  if (fetchError || !squabble) {
+    return { error: "Squabble not found." };
   }
 
-  if (dispute.status !== "open") {
-    return { error: "This dispute is no longer accepting votes." };
+  if (squabble.status !== "open") {
+    return { error: "This squabble is no longer accepting votes." };
   }
 
-  if (isExpired(dispute.expires_at)) {
+  if (isExpired(squabble.expires_at)) {
     return { error: "Voting time has expired." };
   }
 
   // Insert vote (unique constraint prevents duplicate votes)
   const { error: voteError } = await supabase.from("votes").insert({
-    dispute_id: parsed.data.dispute_id,
+    dispute_id: parsed.data.squabble_id,
     user_id: user.id,
     side: parsed.data.side,
   });
 
   if (voteError) {
     if (voteError.code === "23505") {
-      return { error: "You've already voted on this dispute." };
+      return { error: "You've already voted on this squabble." };
     }
     console.error("castVote error:", voteError.message);
     return { error: "Failed to cast vote. Please try again." };
   }
 
-  revalidatePath(`/s/${dispute.slug}`);
+  revalidatePath(`/s/${squabble.slug}`);
   return { success: true };
 }

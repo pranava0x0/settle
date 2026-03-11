@@ -12,7 +12,7 @@ describe("App copy", () => {
   });
 });
 
-describe("OG metadata for dispute pages", () => {
+describe("OG metadata for squabble pages", () => {
   it("generates correct title with question and app name", () => {
     const question = "Is a hot dog a sandwich?";
     const title = `${question} | ${APP_NAME}`;
@@ -49,20 +49,20 @@ describe("OG image vote tally display", () => {
     expect(text).toBe("1 vote");
   });
 
-  it("shows Live badge when dispute is open", () => {
+  it("shows Live badge when squabble is open", () => {
     const status = "open";
     const label = status !== "open" ? "Decided" : "Live";
     expect(label).toBe("Live");
   });
 
-  it("shows Decided badge when dispute is closed", () => {
+  it("shows Decided badge when squabble is closed", () => {
     const status = "closed";
     const label = status !== "open" ? "Decided" : "Live";
     expect(label).toBe("Decided");
   });
 });
 
-describe("DisputeResults winner format", () => {
+describe("SquabbleResults winner format", () => {
   it("produces correct scoreline with side A winning", () => {
     const voteCountA = 7;
     const voteCountB = 3;
@@ -132,7 +132,7 @@ describe("DisputeResults winner format", () => {
   });
 });
 
-describe("DisputeCard status labels", () => {
+describe("SquabbleCard status labels", () => {
   const getStatusLabel = (status: string, winnerSide: "a" | "b" | null) => {
     const settled = status !== "open";
     return settled
@@ -142,7 +142,7 @@ describe("DisputeCard status labels", () => {
       : "Live";
   };
 
-  it("shows 'Decided' when dispute has a winner", () => {
+  it("shows 'Decided' when squabble has a winner", () => {
     expect(getStatusLabel("closed", "a")).toBe("Decided");
   });
 
@@ -217,7 +217,7 @@ describe("VoterBreakdown filtering", () => {
   });
 });
 
-describe("DisputeCard vote count badge", () => {
+describe("SquabbleCard vote count badge", () => {
   const formatVoteCount = (count: number) =>
     `${count} ${count === 1 ? "vote" : "votes"}`;
 
@@ -334,7 +334,7 @@ describe("Vote count display text", () => {
     expect(text).toBe("5 people voted");
   });
 
-  it("uses 'votes so far' for live dispute count", () => {
+  it("uses 'votes so far' for live squabble count", () => {
     const totalVotes = 1;
     expect(`${totalVotes} ${totalVotes === 1 ? "vote" : "votes"} so far`).toBe("1 vote so far");
     const totalVotes2 = 3;
@@ -422,15 +422,15 @@ describe("Display name prompt visibility", () => {
   });
 });
 
-describe("Dispute-first onboarding", () => {
-  it("detects vote redirect from dispute page", () => {
+describe("Squabble-first onboarding", () => {
+  it("detects vote redirect from squabble page", () => {
     const isVoteRedirect = (redirectTo: string) => redirectTo.startsWith("/s/");
     expect(isVoteRedirect("/s/abc123")).toBe(true);
     expect(isVoteRedirect("/dashboard")).toBe(false);
     expect(isVoteRedirect("/s/")).toBe(true);
   });
 
-  it("shows vote-specific login copy for dispute redirects", () => {
+  it("shows vote-specific login copy for squabble redirects", () => {
     const redirectTo = "/s/abc123";
     const isVoteRedirect = redirectTo.startsWith("/s/");
     const copy = isVoteRedirect
@@ -439,7 +439,7 @@ describe("Dispute-first onboarding", () => {
     expect(copy).toBe("Enter your number to cast your vote");
   });
 
-  it("shows default login copy for non-dispute redirects", () => {
+  it("shows default login copy for non-squabble redirects", () => {
     const redirectTo = "/dashboard";
     const isVoteRedirect = redirectTo.startsWith("/s/");
     const copy = isVoteRedirect

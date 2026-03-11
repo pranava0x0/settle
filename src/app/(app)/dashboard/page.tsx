@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { DisputeCard } from "@/components/dispute-card";
+import { SquabbleCard } from "@/components/squabble-card";
 import { DisplayNamePrompt } from "@/components/display-name-prompt";
 import { buttonVariants } from "@/components/ui/button-variants";
 import Link from "next/link";
@@ -25,31 +25,31 @@ export default async function DashboardPage() {
 
   const needsDisplayName = !profile?.display_name;
 
-  // Fetch disputes I created, with vote counts
-  const { data: myDisputes } = await supabase
+  // Fetch squabbles I created, with vote counts
+  const { data: mySquabbles } = await supabase
     .from("disputes")
     .select("*, votes(count)")
     .eq("creator_id", user.id)
     .order("created_at", { ascending: false });
 
-  // Fetch disputes I voted on (with vote side and vote counts)
+  // Fetch squabbles I voted on (with vote side and vote counts)
   const { data: myVotes } = await supabase
     .from("votes")
     .select("side, dispute_id, disputes(*, votes(count))")
     .eq("user_id", user.id)
     .order("created_at", { ascending: false });
 
-  const createdDisputes = myDisputes ?? [];
-  const activeDisputes = createdDisputes.filter((d) => d.status === "open");
-  const settledDisputes = createdDisputes.filter((d) => d.status !== "open");
+  const createdSquabbles = mySquabbles ?? [];
+  const activeSquabbles = createdSquabbles.filter((d) => d.status === "open");
+  const settledSquabbles = createdSquabbles.filter((d) => d.status !== "open");
 
   const getVoteCount = (d: { votes?: Array<{ count: number }> }) =>
     d.votes?.[0]?.count ?? 0;
 
-  const votedDisputes = (myVotes ?? [])
+  const votedSquabbles = (myVotes ?? [])
     .filter((v) => v.disputes)
     .map((v) => ({
-      dispute: v.disputes as unknown as Record<string, unknown> & {
+      squabble: v.disputes as unknown as Record<string, unknown> & {
         votes?: Array<{ count: number }>;
       },
       voteSide: v.side as "a" | "b",
@@ -71,7 +71,7 @@ export default async function DashboardPage() {
 
       <section className="mb-8">
         <h2 className="mb-3 text-lg font-semibold">Live now</h2>
-        {activeDisputes.length === 0 ? (
+        {activeSquabbles.length === 0 ? (
           <p className="text-muted-foreground text-sm">
             Nothing live right now.{" "}
             <Link href={ROUTES.CREATE} className="underline">
@@ -80,8 +80,8 @@ export default async function DashboardPage() {
           </p>
         ) : (
           <div className="space-y-3">
-            {activeDisputes.map((d) => (
-              <DisputeCard
+            {activeSquabbles.map((d) => (
+              <SquabbleCard
                 key={d.id}
                 slug={d.slug}
                 question={d.question}
@@ -99,14 +99,14 @@ export default async function DashboardPage() {
 
       <section className="mb-8">
         <h2 className="mb-3 text-lg font-semibold">Decided</h2>
-        {settledDisputes.length === 0 ? (
+        {settledSquabbles.length === 0 ? (
           <p className="text-muted-foreground text-sm">
             No results yet. The people haven&apos;t spoken.
           </p>
         ) : (
           <div className="space-y-3">
-            {settledDisputes.map((d) => (
-              <DisputeCard
+            {settledSquabbles.map((d) => (
+              <SquabbleCard
                 key={d.id}
                 slug={d.slug}
                 question={d.question}
@@ -124,24 +124,24 @@ export default async function DashboardPage() {
 
       <section>
         <h2 className="mb-3 text-lg font-semibold">You voted on</h2>
-        {votedDisputes.length === 0 ? (
+        {votedSquabbles.length === 0 ? (
           <p className="text-muted-foreground text-sm">
             You haven&apos;t weighed in on anything yet.
           </p>
         ) : (
           <div className="space-y-3">
-            {votedDisputes.map(({ dispute, voteSide }) => (
-              <DisputeCard
-                key={dispute.id as string}
-                slug={dispute.slug as string}
-                question={dispute.question as string}
-                sideA={dispute.side_a as string}
-                sideB={dispute.side_b as string}
-                status={dispute.status as string}
-                winnerSide={dispute.winner_side as "a" | "b" | null}
-                expiresAt={dispute.expires_at as string}
+            {votedSquabbles.map(({ squabble, voteSide }) => (
+              <SquabbleCard
+                key={squabble.id as string}
+                slug={squabble.slug as string}
+                question={squabble.question as string}
+                sideA={squabble.side_a as string}
+                sideB={squabble.side_b as string}
+                status={squabble.status as string}
+                winnerSide={squabble.winner_side as "a" | "b" | null}
+                expiresAt={squabble.expires_at as string}
                 userVoteSide={voteSide}
-                voteCount={getVoteCount(dispute)}
+                voteCount={getVoteCount(squabble)}
               />
             ))}
           </div>

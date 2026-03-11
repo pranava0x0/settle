@@ -11,10 +11,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { createDispute } from "@/lib/actions/disputes";
+import { createSquabble } from "@/lib/actions/squabbles";
 import { TIMER_PRESETS } from "@/lib/constants";
 
-const CreateDisputePage = () => {
+const CreateSquabblePage = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [selectedDuration, setSelectedDuration] = useState<number>(
@@ -27,7 +27,7 @@ const CreateDisputePage = () => {
     setLoading(true);
 
     const formData = new FormData(e.currentTarget);
-    const result = await createDispute({
+    const result = await createSquabble({
       question: formData.get("question") as string,
       side_a: formData.get("side_a") as string,
       side_b: formData.get("side_b") as string,
@@ -39,7 +39,7 @@ const CreateDisputePage = () => {
     if (result?.error) {
       setError(result.error);
     }
-    // If successful, createDispute redirects to the dispute page
+    // If successful, createSquabble redirects to the squabble page
   };
 
   return (
@@ -119,4 +119,4 @@ const CreateDisputePage = () => {
   );
 };
 
-export default CreateDisputePage;
+export default CreateSquabblePage;

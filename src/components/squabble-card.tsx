@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { ROUTES } from "@/lib/constants";
 import { isExpired } from "@/lib/utils";
 
-type DisputeCardProps = {
+type SquabbleCardProps = {
   slug: string;
   question: string;
   sideA: string;
@@ -21,7 +21,7 @@ type DisputeCardProps = {
   voteCount?: number;
 };
 
-export const DisputeCard = ({
+export const SquabbleCard = ({
   slug,
   question,
   sideA,
@@ -31,7 +31,7 @@ export const DisputeCard = ({
   expiresAt,
   userVoteSide,
   voteCount,
-}: DisputeCardProps) => {
+}: SquabbleCardProps) => {
   const expired = isExpired(expiresAt);
   const settled = status !== "open";
 
@@ -46,7 +46,7 @@ export const DisputeCard = ({
   const statusVariant = settled || expired ? "secondary" : "default";
 
   return (
-    <Link href={ROUTES.DISPUTE(slug)}>
+    <Link href={ROUTES.SQUABBLE(slug)}>
       <Card className="transition-colors hover:border-foreground/20">
         <CardHeader className="pb-2">
           <div className="flex items-start justify-between gap-2">

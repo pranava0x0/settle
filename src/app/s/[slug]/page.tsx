@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isExpired } from "@/lib/utils";
-import { closeDispute } from "@/lib/actions/disputes";
+import { closeSquabble } from "@/lib/actions/squabbles";
 import { APP_NAME } from "@/lib/constants";
 import {
   Card,
@@ -13,10 +13,11 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { CountdownTimer } from "@/components/countdown-timer";
 import { VoteButtons } from "@/components/vote-buttons";
-import { DisputeResults } from "@/components/dispute-results";
+import { SquabbleResults } from "@/components/squabble-results";
 import { ShareButton } from "@/components/share-button";
 import { RealtimeVoteListener } from "@/components/realtime-vote-listener";
 import { VoterBreakdown } from "@/components/voter-breakdown";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 type PageProps = {
   params: Promise<{ slug: string }>;
@@ -26,53 +27,53 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { slug } = await params;
   const supabase = await createClient();
 
-  const { data: dispute } = await supabase
+  const { data: squabble } = await supabase
     .from("disputes")
     .select("question, side_a, side_b")
     .eq("slug", slug)
     .single();
 
-  if (!dispute) {
+  if (!squabble) {
     return { title: "Not Found" };
   }
 
-  const description = `${dispute.side_a} vs ${dispute.side_b} — cast your vote!`;
+  const description = `${squabble.side_a} vs ${squabble.side_b} — cast your vote!`;
 
   return {
-    title: `${dispute.question} | ${APP_NAME}`,
+    title: `${squabble.question} | ${APP_NAME}`,
     description,
     openGraph: {
-      title: dispute.question,
+      title: squabble.question,
       description,
       siteName: APP_NAME,
       type: "website",
     },
     twitter: {
       card: "summary_large_image",
-      title: dispute.question,
+      title: squabble.question,
       description,
     },
   };
 }
 
-export default async function DisputePage({ params }: PageProps) {
+export default async function SquabblePage({ params }: PageProps) {
   const { slug } = await params;
   const supabase = await createClient();
 
-  // Fetch dispute
-  const { data: dispute, error } = await supabase
+  // Fetch squabble
+  const { data: squabble, error } = await supabase
     .from("disputes")
     .select("*")
     .eq("slug", slug)
     .single();
 
-  if (error || !dispute) {
+  if (error || !squabble) {
     notFound();
   }
 
   // Lazy close: if expired but still marked open, close it now
-  if (dispute.status === "open" && isExpired(dispute.expires_at)) {
-    await closeDispute(dispute.id);
+  if (squabble.status === "open" && isExpired(squabble.expires_at)) {
+    await closeSquabble(squabble.id);
     // Re-fetch to get updated status
     const { data: updated } = await supabase
       .from("disputes")
@@ -80,7 +81,7 @@ export default async function DisputePage({ params }: PageProps) {
       .eq("slug", slug)
       .single();
     if (updated) {
-      Object.assign(dispute, updated);
+      Object.assign(squabble, updated);
     }
   }
 
@@ -88,13 +89,13 @@ export default async function DisputePage({ params }: PageProps) {
   const { count: voteCountA } = await supabase
     .from("votes")
     .select("*", { count: "exact", head: true })
-    .eq("dispute_id", dispute.id)
+    .eq("dispute_id", squabble.id)
     .eq("side", "a");
 
   const { count: voteCountB } = await supabase
     .from("votes")
     .select("*", { count: "exact", head: true })
-    .eq("dispute_id", dispute.id)
+    .eq("dispute_id", squabble.id)
     .eq("side", "b");
 
   // Check current user's vote
@@ -107,7 +108,7 @@ export default async function DisputePage({ params }: PageProps) {
     const { data: vote } = await supabase
       .from("votes")
       .select("side")
-      .eq("dispute_id", dispute.id)
+      .eq("dispute_id", squabble.id)
       .eq("user_id", user.id)
       .single();
     if (vote) {
@@ -116,13 +117,13 @@ export default async function DisputePage({ params }: PageProps) {
   }
 
   // Fetch voter breakdown for creator only
-  const isCreator = user?.id === dispute.creator_id;
+  const isCreator = user?.id === squabble.creator_id;
   let voters: { side: "a" | "b"; display_name: string | null; voted_at: string }[] = [];
   if (isCreator) {
     const { data: voteRows } = await supabase
       .from("votes")
       .select("side, created_at, users(display_name)")
-      .eq("dispute_id", dispute.id)
+      .eq("dispute_id", squabble.id)
       .order("created_at", { ascending: true });
 
     if (voteRows) {
@@ -137,42 +138,43 @@ export default async function DisputePage({ params }: PageProps) {
     }
   }
 
-  const expired = isExpired(dispute.expires_at);
-  const isClosed = dispute.status !== "open";
+  const expired = isExpired(squabble.expires_at);
+  const isClosed = squabble.status !== "open";
   const showResults = isClosed || expired;
   const totalVotes = (voteCountA ?? 0) + (voteCountB ?? 0);
 
   return (
-    <div className="mx-auto max-w-lg px-4 py-8">
+    <div id="squabble-page" className="squabble-page mx-auto max-w-lg px-4 py-8">
+      <ThemeToggle />
       <Card>
         <CardHeader className="text-center">
           <div className="mb-2 flex items-center justify-center gap-2">
             <Badge
               variant={
-                dispute.status === "open" ? "default" : "secondary"
+                squabble.status === "open" ? "default" : "secondary"
               }
             >
-              {dispute.status === "open"
+              {squabble.status === "open"
                 ? "Live"
-                : dispute.status === "closed"
+                : squabble.status === "closed"
                   ? "Decided"
                   : "Closed"}
             </Badge>
             {!isClosed && !expired && (
-              <CountdownTimer expiresAt={dispute.expires_at} />
+              <CountdownTimer expiresAt={squabble.expires_at} />
             )}
           </div>
-          <CardTitle className="text-xl">{dispute.question}</CardTitle>
+          <CardTitle className="text-xl">{squabble.question}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           {showResults ? (
-            <DisputeResults
-              sideA={dispute.side_a}
-              sideB={dispute.side_b}
+            <SquabbleResults
+              sideA={squabble.side_a}
+              sideB={squabble.side_b}
               voteCountA={voteCountA ?? 0}
               voteCountB={voteCountB ?? 0}
-              winnerSide={dispute.winner_side as "a" | "b" | null}
-              status={dispute.status}
+              winnerSide={squabble.winner_side as "a" | "b" | null}
+              status={squabble.status}
             />
           ) : (
             <>
@@ -182,9 +184,9 @@ export default async function DisputePage({ params }: PageProps) {
                 </p>
               )}
               <VoteButtons
-                disputeId={dispute.id}
-                sideA={dispute.side_a}
-                sideB={dispute.side_b}
+                squabbleId={squabble.id}
+                sideA={squabble.side_a}
+                sideB={squabble.side_b}
                 userVote={userVote}
                 isExpired={expired}
                 isLoggedIn={!!user}
@@ -198,18 +200,18 @@ export default async function DisputePage({ params }: PageProps) {
             </>
           )}
 
-          <ShareButton slug={slug} question={dispute.question} />
+          <ShareButton slug={slug} question={squabble.question} />
 
           {isCreator && voters.length > 0 && (
             <VoterBreakdown
               voters={voters}
-              sideA={dispute.side_a}
-              sideB={dispute.side_b}
+              sideA={squabble.side_a}
+              sideB={squabble.side_b}
             />
           )}
 
           {!isClosed && !expired && (
-            <RealtimeVoteListener disputeId={dispute.id} />
+            <RealtimeVoteListener squabbleId={squabble.id} />
           )}
         </CardContent>
       </Card>

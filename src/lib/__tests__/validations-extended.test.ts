@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
-  createDisputeSchema,
+  createSquabbleSchema,
   castVoteSchema,
   phoneSchema,
   otpSchema,
@@ -72,14 +72,14 @@ describe("phoneSchema — auto-formatting", () => {
 });
 
 describe("castVoteSchema — edge cases", () => {
-  it("rejects missing dispute_id", () => {
+  it("rejects missing squabble_id", () => {
     const result = castVoteSchema.safeParse({ side: "a" });
     expect(result.success).toBe(false);
   });
 
   it("rejects missing side", () => {
     const result = castVoteSchema.safeParse({
-      dispute_id: "550e8400-e29b-41d4-a716-446655440000",
+      squabble_id: "550e8400-e29b-41d4-a716-446655440000",
     });
     expect(result.success).toBe(false);
   });
@@ -94,24 +94,24 @@ describe("castVoteSchema — edge cases", () => {
 
   it("rejects uppercase side", () => {
     const result = castVoteSchema.safeParse({
-      dispute_id: "550e8400-e29b-41d4-a716-446655440000",
+      squabble_id: "550e8400-e29b-41d4-a716-446655440000",
       side: "A",
     });
     expect(result.success).toBe(false);
   });
 });
 
-describe("createDisputeSchema — edge cases", () => {
+describe("createSquabbleSchema — edge cases", () => {
   it("rejects null input", () => {
-    expect(createDisputeSchema.safeParse(null).success).toBe(false);
+    expect(createSquabbleSchema.safeParse(null).success).toBe(false);
   });
 
   it("rejects missing fields", () => {
-    expect(createDisputeSchema.safeParse({}).success).toBe(false);
+    expect(createSquabbleSchema.safeParse({}).success).toBe(false);
   });
 
   it("accepts exactly 280 character question", () => {
-    const result = createDisputeSchema.safeParse({
+    const result = createSquabbleSchema.safeParse({
       question: "x".repeat(280),
       side_a: "Yes",
       side_b: "No",
@@ -121,7 +121,7 @@ describe("createDisputeSchema — edge cases", () => {
   });
 
   it("accepts exactly 140 character sides", () => {
-    const result = createDisputeSchema.safeParse({
+    const result = createSquabbleSchema.safeParse({
       question: "Test?",
       side_a: "a".repeat(140),
       side_b: "b".repeat(140),
@@ -131,7 +131,7 @@ describe("createDisputeSchema — edge cases", () => {
   });
 
   it("accepts max duration of 7 days (10080 minutes)", () => {
-    const result = createDisputeSchema.safeParse({
+    const result = createSquabbleSchema.safeParse({
       question: "Week-long debate?",
       side_a: "Yes",
       side_b: "No",
@@ -141,7 +141,7 @@ describe("createDisputeSchema — edge cases", () => {
   });
 
   it("rejects string duration", () => {
-    const result = createDisputeSchema.safeParse({
+    const result = createSquabbleSchema.safeParse({
       question: "Test?",
       side_a: "Yes",
       side_b: "No",

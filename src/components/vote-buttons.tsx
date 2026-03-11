@@ -6,7 +6,7 @@ import { castVote } from "@/lib/actions/votes";
 import { useRouter } from "next/navigation";
 
 type VoteButtonsProps = {
-  disputeId: string;
+  squabbleId: string;
   sideA: string;
   sideB: string;
   userVote?: "a" | "b" | null;
@@ -17,7 +17,7 @@ type VoteButtonsProps = {
 };
 
 export const VoteButtons = ({
-  disputeId,
+  squabbleId,
   sideA,
   sideB,
   userVote,
@@ -39,7 +39,7 @@ export const VoteButtons = ({
     setError("");
     setLoading(true);
 
-    const result = await castVote({ dispute_id: disputeId, side });
+    const result = await castVote({ squabble_id: squabbleId, side });
     setLoading(false);
 
     if (result.error) {

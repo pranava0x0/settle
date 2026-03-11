@@ -1,4 +1,4 @@
-import type { DisputeStatus, VoteSide } from "./constants";
+import type { SquabbleStatus, VoteSide } from "./constants";
 
 export type User = {
   id: string;
@@ -8,14 +8,14 @@ export type User = {
   created_at: string;
 };
 
-export type Dispute = {
+export type Squabble = {
   id: string;
   slug: string;
   creator_id: string;
   question: string;
   side_a: string;
   side_b: string;
-  status: DisputeStatus;
+  status: SquabbleStatus;
   winner_side: VoteSide | null;
   expires_at: string;
   created_at: string;
@@ -30,7 +30,7 @@ export type Vote = {
   created_at: string;
 };
 
-export type DisputeWithVotes = Dispute & {
+export type SquabbleWithVotes = Squabble & {
   votes: Vote[];
   vote_count_a: number;
   vote_count_b: number;

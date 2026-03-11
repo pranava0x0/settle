@@ -1,14 +1,14 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { createDisputeSchema } from "@/lib/validations";
+import { createSquabbleSchema } from "@/lib/validations";
 import { generateSlug, getExpiresAt, isExpired } from "@/lib/utils";
 import { redirect } from "next/navigation";
 import { ROUTES } from "@/lib/constants";
-import type { CreateDisputeInput } from "@/lib/validations";
+import type { CreateSquabbleInput } from "@/lib/validations";
 
-export async function createDispute(input: CreateDisputeInput) {
-  const parsed = createDisputeSchema.safeParse(input);
+export async function createSquabble(input: CreateSquabbleInput) {
+  const parsed = createSquabbleSchema.safeParse(input);
   if (!parsed.success) {
     return { error: parsed.error.issues[0].message };
   }
@@ -19,7 +19,7 @@ export async function createDispute(input: CreateDisputeInput) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return { error: "You must be logged in to create a dispute." };
+    return { error: "You must be logged in to start a squabble." };
   }
 
   const slug = generateSlug();
@@ -35,29 +35,29 @@ export async function createDispute(input: CreateDisputeInput) {
   });
 
   if (error) {
-    console.error("createDispute error:", error.message);
-    return { error: "Failed to create dispute. Please try again." };
+    console.error("createSquabble error:", error.message);
+    return { error: "Failed to create squabble. Please try again." };
   }
 
-  redirect(ROUTES.DISPUTE(slug));
+  redirect(ROUTES.SQUABBLE(slug));
 }
 
-export async function closeDispute(disputeId: string) {
+export async function closeSquabble(squabbleId: string) {
   const supabase = await createClient();
 
-  // Get the dispute
-  const { data: dispute, error: fetchError } = await supabase
+  // Get the squabble
+  const { data: squabble, error: fetchError } = await supabase
     .from("disputes")
     .select("*")
-    .eq("id", disputeId)
+    .eq("id", squabbleId)
     .single();
 
-  if (fetchError || !dispute) {
-    console.error("closeDispute fetch error:", fetchError?.message);
+  if (fetchError || !squabble) {
+    console.error("closeSquabble fetch error:", fetchError?.message);
     return;
   }
 
-  if (dispute.status !== "open" || !isExpired(dispute.expires_at)) {
+  if (squabble.status !== "open" || !isExpired(squabble.expires_at)) {
     return;
   }
 
@@ -65,13 +65,13 @@ export async function closeDispute(disputeId: string) {
   const { count: countA } = await supabase
     .from("votes")
     .select("*", { count: "exact", head: true })
-    .eq("dispute_id", disputeId)
+    .eq("dispute_id", squabbleId)
     .eq("side", "a");
 
   const { count: countB } = await supabase
     .from("votes")
     .select("*", { count: "exact", head: true })
-    .eq("dispute_id", disputeId)
+    .eq("dispute_id", squabbleId)
     .eq("side", "b");
 
   const votesA = countA ?? 0;
@@ -99,9 +99,9 @@ export async function closeDispute(disputeId: string) {
       winner_side: winnerSide,
       closed_at: new Date().toISOString(),
     })
-    .eq("id", disputeId);
+    .eq("id", squabbleId);
 
   if (updateError) {
-    console.error("closeDispute update error:", updateError.message);
+    console.error("closeSquabble update error:", updateError.message);
   }
 }

@@ -9,7 +9,7 @@ type ShareButtonProps = {
 };
 
 /**
- * Build the pre-filled SMS body for sharing a dispute link.
+ * Build the pre-filled SMS body for sharing a squabble link.
  * Uses `sms:?&body=` which works on iOS (iMessage) and Android.
  */
 export function buildSmsHref(question: string | undefined, url: string): string {

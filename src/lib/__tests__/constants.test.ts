@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   APP_NAME,
-  DISPUTE_STATUS,
+  SQUABBLE_STATUS,
   VOTE_SIDE,
   TIMER_PRESETS,
   SLUG_LENGTH,
@@ -10,15 +10,15 @@ import {
   PUBLIC_ROUTES,
 } from "@/lib/constants";
 
-describe("DISPUTE_STATUS", () => {
+describe("SQUABBLE_STATUS", () => {
   it("has exactly three statuses", () => {
-    expect(Object.keys(DISPUTE_STATUS)).toHaveLength(3);
+    expect(Object.keys(SQUABBLE_STATUS)).toHaveLength(3);
   });
 
   it("contains open, closed, and expired", () => {
-    expect(DISPUTE_STATUS.OPEN).toBe("open");
-    expect(DISPUTE_STATUS.CLOSED).toBe("closed");
-    expect(DISPUTE_STATUS.EXPIRED).toBe("expired");
+    expect(SQUABBLE_STATUS.OPEN).toBe("open");
+    expect(SQUABBLE_STATUS.CLOSED).toBe("closed");
+    expect(SQUABBLE_STATUS.EXPIRED).toBe("expired");
   });
 });
 
@@ -77,9 +77,9 @@ describe("ROUTES", () => {
     expect(ROUTES.CREATE).toBe("/create");
   });
 
-  it("generates correct dispute route from slug", () => {
-    expect(ROUTES.DISPUTE("abc123")).toBe("/s/abc123");
-    expect(ROUTES.DISPUTE("")).toBe("/s/");
+  it("generates correct squabble route from slug", () => {
+    expect(ROUTES.SQUABBLE("abc123")).toBe("/s/abc123");
+    expect(ROUTES.SQUABBLE("")).toBe("/s/");
   });
 });
 

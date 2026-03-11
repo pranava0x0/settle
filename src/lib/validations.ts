@@ -1,6 +1,6 @@
 import { z } from "zod/v4";
 
-export const createDisputeSchema = z.object({
+export const createSquabbleSchema = z.object({
   question: z
     .string()
     .min(3, "Question must be at least 3 characters")
@@ -20,10 +20,10 @@ export const createDisputeSchema = z.object({
     .max(10080, "Duration can't exceed 7 days"),
 });
 
-export type CreateDisputeInput = z.infer<typeof createDisputeSchema>;
+export type CreateSquabbleInput = z.infer<typeof createSquabbleSchema>;
 
 export const castVoteSchema = z.object({
-  dispute_id: z.string().uuid("Invalid dispute ID"),
+  squabble_id: z.string().uuid("Invalid squabble ID"),
   side: z.enum(["a", "b"], { message: "Side must be 'a' or 'b'" }),
 });
 

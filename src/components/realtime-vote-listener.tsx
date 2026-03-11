@@ -5,11 +5,11 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 type RealtimeVoteListenerProps = {
-  disputeId: string;
+  squabbleId: string;
 };
 
 export const RealtimeVoteListener = ({
-  disputeId,
+  squabbleId,
 }: RealtimeVoteListenerProps) => {
   const router = useRouter();
 
@@ -17,14 +17,14 @@ export const RealtimeVoteListener = ({
     const supabase = createClient();
 
     const channel = supabase
-      .channel(`votes:${disputeId}`)
+      .channel(`votes:${squabbleId}`)
       .on(
         "postgres_changes",
         {
           event: "INSERT",
           schema: "public",
           table: "votes",
-          filter: `dispute_id=eq.${disputeId}`,
+          filter: `dispute_id=eq.${squabbleId}`,
         },
         () => {
           router.refresh();
@@ -35,7 +35,7 @@ export const RealtimeVoteListener = ({
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [disputeId, router]);
+  }, [squabbleId, router]);
 
   // Renders nothing — purely a side-effect component
   return null;

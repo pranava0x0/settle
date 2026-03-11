@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
-type DisputeResultsProps = {
+type SquabbleResultsProps = {
   sideA: string;
   sideB: string;
   voteCountA: number;
@@ -10,14 +10,14 @@ type DisputeResultsProps = {
   status: string;
 };
 
-export const DisputeResults = ({
+export const SquabbleResults = ({
   sideA,
   sideB,
   voteCountA,
   voteCountB,
   winnerSide,
   status,
-}: DisputeResultsProps) => {
+}: SquabbleResultsProps) => {
   const totalVotes = voteCountA + voteCountB;
   const percentA = totalVotes > 0 ? Math.round((voteCountA / totalVotes) * 100) : 0;
   const percentB = totalVotes > 0 ? Math.round((voteCountB / totalVotes) * 100) : 0;

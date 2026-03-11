@@ -2,14 +2,14 @@ export const APP_NAME = "Squabble";
 export const APP_DESCRIPTION =
   "Got a squabble? Drop it, send the link, and let the votes do the talking.";
 
-export const DISPUTE_STATUS = {
+export const SQUABBLE_STATUS = {
   OPEN: "open",
   CLOSED: "closed",
   EXPIRED: "expired",
 } as const;
 
-export type DisputeStatus =
-  (typeof DISPUTE_STATUS)[keyof typeof DISPUTE_STATUS];
+export type SquabbleStatus =
+  (typeof SQUABBLE_STATUS)[keyof typeof SQUABBLE_STATUS];
 
 export const VOTE_SIDE = {
   A: "a",
@@ -32,7 +32,7 @@ export const ROUTES = {
   LOGIN: "/login",
   DASHBOARD: "/dashboard",
   CREATE: "/create",
-  DISPUTE: (slug: string) => `/s/${slug}`,
+  SQUABBLE: (slug: string) => `/s/${slug}`,
 } as const;
 
 export const PROTECTED_ROUTES = ["/dashboard", "/create"];

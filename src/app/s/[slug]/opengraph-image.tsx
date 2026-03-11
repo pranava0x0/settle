@@ -13,13 +13,13 @@ export default async function OGImage({
   const { slug } = await params;
   const supabase = await createClient();
 
-  const { data: dispute } = await supabase
+  const { data: squabble } = await supabase
     .from("disputes")
     .select("id, question, side_a, side_b, status")
     .eq("slug", slug)
     .single();
 
-  if (!dispute) {
+  if (!squabble) {
     return new ImageResponse(
       (
         <div
@@ -35,7 +35,7 @@ export default async function OGImage({
             fontWeight: 700,
           }}
         >
-          Settle
+          Squabble
         </div>
       ),
       { ...size },
@@ -46,17 +46,17 @@ export default async function OGImage({
     supabase
       .from("votes")
       .select("*", { count: "exact", head: true })
-      .eq("dispute_id", dispute.id)
+      .eq("dispute_id", squabble.id)
       .eq("side", "a"),
     supabase
       .from("votes")
       .select("*", { count: "exact", head: true })
-      .eq("dispute_id", dispute.id)
+      .eq("dispute_id", squabble.id)
       .eq("side", "b"),
   ]);
 
   const totalVotes = (voteCountA ?? 0) + (voteCountB ?? 0);
-  const isSettled = dispute.status !== "open";
+  const isSettled = squabble.status !== "open";
 
   return new ImageResponse(
     (
@@ -114,7 +114,7 @@ export default async function OGImage({
             maxWidth: "900px",
           }}
         >
-          {dispute.question}
+          {squabble.question}
         </div>
 
         {/* Sides + votes */}
@@ -133,7 +133,7 @@ export default async function OGImage({
             }}
           >
             <div style={{ fontSize: 18, color: "#a1a1aa" }}>
-              {dispute.side_a}
+              {squabble.side_a}
             </div>
             <div style={{ fontSize: 40, fontWeight: 700 }}>
               {voteCountA ?? 0}
@@ -159,7 +159,7 @@ export default async function OGImage({
             }}
           >
             <div style={{ fontSize: 18, color: "#a1a1aa" }}>
-              {dispute.side_b}
+              {squabble.side_b}
             </div>
             <div style={{ fontSize: 40, fontWeight: 700 }}>
               {voteCountB ?? 0}

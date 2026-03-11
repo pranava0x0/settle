@@ -1,13 +1,13 @@
 import { describe, it, expect } from "vitest";
 import {
-  createDisputeSchema,
+  createSquabbleSchema,
   castVoteSchema,
   phoneSchema,
   otpSchema,
   displayNameSchema,
 } from "@/lib/validations";
 
-describe("createDisputeSchema", () => {
+describe("createSquabbleSchema", () => {
   const valid = {
     question: "Is a hot dog a sandwich?",
     side_a: "Yes",
@@ -16,21 +16,21 @@ describe("createDisputeSchema", () => {
   };
 
   it("accepts valid input", () => {
-    expect(createDisputeSchema.safeParse(valid).success).toBe(true);
+    expect(createSquabbleSchema.safeParse(valid).success).toBe(true);
   });
 
   it("rejects empty question", () => {
-    const result = createDisputeSchema.safeParse({ ...valid, question: "" });
+    const result = createSquabbleSchema.safeParse({ ...valid, question: "" });
     expect(result.success).toBe(false);
   });
 
   it("rejects question under 3 characters", () => {
-    const result = createDisputeSchema.safeParse({ ...valid, question: "ab" });
+    const result = createSquabbleSchema.safeParse({ ...valid, question: "ab" });
     expect(result.success).toBe(false);
   });
 
   it("rejects question over 280 characters", () => {
-    const result = createDisputeSchema.safeParse({
+    const result = createSquabbleSchema.safeParse({
       ...valid,
       question: "x".repeat(281),
     });
@@ -38,17 +38,17 @@ describe("createDisputeSchema", () => {
   });
 
   it("rejects empty side_a", () => {
-    const result = createDisputeSchema.safeParse({ ...valid, side_a: "" });
+    const result = createSquabbleSchema.safeParse({ ...valid, side_a: "" });
     expect(result.success).toBe(false);
   });
 
   it("rejects empty side_b", () => {
-    const result = createDisputeSchema.safeParse({ ...valid, side_b: "" });
+    const result = createSquabbleSchema.safeParse({ ...valid, side_b: "" });
     expect(result.success).toBe(false);
   });
 
   it("rejects side_a over 140 characters", () => {
-    const result = createDisputeSchema.safeParse({
+    const result = createSquabbleSchema.safeParse({
       ...valid,
       side_a: "y".repeat(141),
     });
@@ -56,7 +56,7 @@ describe("createDisputeSchema", () => {
   });
 
   it("rejects 0 duration", () => {
-    const result = createDisputeSchema.safeParse({
+    const result = createSquabbleSchema.safeParse({
       ...valid,
       duration_minutes: 0,
     });
@@ -64,7 +64,7 @@ describe("createDisputeSchema", () => {
   });
 
   it("rejects negative duration", () => {
-    const result = createDisputeSchema.safeParse({
+    const result = createSquabbleSchema.safeParse({
       ...valid,
       duration_minutes: -5,
     });
@@ -72,7 +72,7 @@ describe("createDisputeSchema", () => {
   });
 
   it("rejects duration over 7 days", () => {
-    const result = createDisputeSchema.safeParse({
+    const result = createSquabbleSchema.safeParse({
       ...valid,
       duration_minutes: 10081,
     });
@@ -80,7 +80,7 @@ describe("createDisputeSchema", () => {
   });
 
   it("rejects float duration", () => {
-    const result = createDisputeSchema.safeParse({
+    const result = createSquabbleSchema.safeParse({
       ...valid,
       duration_minutes: 1.5,
     });
@@ -88,7 +88,7 @@ describe("createDisputeSchema", () => {
   });
 
   it("accepts minimum valid values", () => {
-    const result = createDisputeSchema.safeParse({
+    const result = createSquabbleSchema.safeParse({
       question: "abc",
       side_a: "x",
       side_b: "y",
@@ -101,7 +101,7 @@ describe("createDisputeSchema", () => {
 describe("castVoteSchema", () => {
   it("accepts valid vote for side a", () => {
     const result = castVoteSchema.safeParse({
-      dispute_id: "550e8400-e29b-41d4-a716-446655440000",
+      squabble_id: "550e8400-e29b-41d4-a716-446655440000",
       side: "a",
     });
     expect(result.success).toBe(true);
@@ -109,7 +109,7 @@ describe("castVoteSchema", () => {
 
   it("accepts valid vote for side b", () => {
     const result = castVoteSchema.safeParse({
-      dispute_id: "550e8400-e29b-41d4-a716-446655440000",
+      squabble_id: "550e8400-e29b-41d4-a716-446655440000",
       side: "b",
     });
     expect(result.success).toBe(true);
@@ -117,7 +117,7 @@ describe("castVoteSchema", () => {
 
   it("rejects invalid uuid", () => {
     const result = castVoteSchema.safeParse({
-      dispute_id: "not-a-uuid",
+      squabble_id: "not-a-uuid",
       side: "a",
     });
     expect(result.success).toBe(false);
@@ -125,7 +125,7 @@ describe("castVoteSchema", () => {
 
   it("rejects invalid side", () => {
     const result = castVoteSchema.safeParse({
-      dispute_id: "550e8400-e29b-41d4-a716-446655440000",
+      squabble_id: "550e8400-e29b-41d4-a716-446655440000",
       side: "c",
     });
     expect(result.success).toBe(false);
