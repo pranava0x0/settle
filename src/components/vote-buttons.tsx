@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { castVote } from "@/lib/actions/votes";
 import { useRouter } from "next/navigation";
@@ -91,12 +90,7 @@ export const VoteButtons = ({
       </div>
       {!isLoggedIn && (
         <p className="text-muted-foreground text-center text-xs">
-          <Link
-            href={`/login?redirect=/s/${slug}`}
-            className="underline hover:text-foreground"
-          >
-            Log in to cast your vote
-          </Link>
+          Tap a side to vote
         </p>
       )}
       {error && <p className="text-center text-sm text-red-500">{error}</p>}

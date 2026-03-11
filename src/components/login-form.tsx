@@ -19,6 +19,7 @@ export const LoginForm = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirect") || "/dashboard";
+  const isVoteRedirect = redirectTo.startsWith("/s/");
 
   const [step, setStep] = useState<"phone" | "otp">("phone");
   const [phone, setPhone] = useState("");
@@ -88,7 +89,9 @@ export const LoginForm = () => {
           <CardTitle className="text-2xl font-bold">{APP_NAME}</CardTitle>
           <CardDescription>
             {step === "phone"
-              ? "Drop your number to jump in"
+              ? isVoteRedirect
+                ? "Enter your number to cast your vote"
+                : "Drop your number to jump in"
               : "Enter the 6-digit code we just texted you"}
           </CardDescription>
         </CardHeader>

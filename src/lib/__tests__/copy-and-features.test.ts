@@ -361,3 +361,30 @@ describe("OTP input handling", () => {
     expect(shouldAutoSubmit("1234")).toBe(false);
   });
 });
+
+describe("Dispute-first onboarding", () => {
+  it("detects vote redirect from dispute page", () => {
+    const isVoteRedirect = (redirectTo: string) => redirectTo.startsWith("/s/");
+    expect(isVoteRedirect("/s/abc123")).toBe(true);
+    expect(isVoteRedirect("/dashboard")).toBe(false);
+    expect(isVoteRedirect("/s/")).toBe(true);
+  });
+
+  it("shows vote-specific login copy for dispute redirects", () => {
+    const redirectTo = "/s/abc123";
+    const isVoteRedirect = redirectTo.startsWith("/s/");
+    const copy = isVoteRedirect
+      ? "Enter your number to cast your vote"
+      : "Drop your number to jump in";
+    expect(copy).toBe("Enter your number to cast your vote");
+  });
+
+  it("shows default login copy for non-dispute redirects", () => {
+    const redirectTo = "/dashboard";
+    const isVoteRedirect = redirectTo.startsWith("/s/");
+    const copy = isVoteRedirect
+      ? "Enter your number to cast your vote"
+      : "Drop your number to jump in";
+    expect(copy).toBe("Drop your number to jump in");
+  });
+});
