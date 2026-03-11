@@ -54,7 +54,7 @@ const CreateDisputePage = () => {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="question">The hot take</Label>
+              <Label htmlFor="question">The question</Label>
               <Input
                 id="question"
                 name="question"

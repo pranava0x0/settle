@@ -41,9 +41,9 @@ export default async function Home() {
 
       <div className="space-y-6 text-left">
         <div className="rounded-lg border p-4">
-          <h3 className="mb-1 font-semibold">1. Drop your hot take</h3>
+          <h3 className="mb-1 font-semibold">1. Drop your question</h3>
           <p className="text-muted-foreground text-sm">
-            What&apos;s the debate? Pick two sides and set a timer.
+            What&apos;s the question? Pick two sides and set a timer.
           </p>
         </div>
         <div className="rounded-lg border p-4">

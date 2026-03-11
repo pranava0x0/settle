@@ -7,7 +7,7 @@ describe("App copy", () => {
   });
 
   it("APP_DESCRIPTION uses playful copy", () => {
-    expect(APP_DESCRIPTION).toContain("hot take");
+    expect(APP_DESCRIPTION).toContain("question to settle");
     expect(APP_DESCRIPTION).toContain("votes do the talking");
   });
 });
