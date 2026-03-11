@@ -154,6 +154,11 @@ export default async function DisputePage({ params }: PageProps) {
                 isExpired={expired}
                 isLoggedIn={!!user}
                 slug={slug}
+                voteCountForUserSide={
+                  userVote === "a" ? (voteCountA ?? 0)
+                  : userVote === "b" ? (voteCountB ?? 0)
+                  : undefined
+                }
               />
             </>
           )}

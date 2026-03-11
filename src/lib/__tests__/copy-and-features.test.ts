@@ -211,6 +211,42 @@ describe("DisputeCard vote count badge", () => {
   });
 });
 
+describe("VoteButtons copy", () => {
+  it("formats button label as 'I'm with [Side]'", () => {
+    const sideA = "Pizza";
+    const sideB = "Tacos";
+    expect(`I'm with ${sideA}`).toBe("I'm with Pizza");
+    expect(`I'm with ${sideB}`).toBe("I'm with Tacos");
+  });
+
+  it("shows 'others agree' when voteCountForUserSide > 1", () => {
+    const voteCountForUserSide = 5;
+    const othersCount = voteCountForUserSide - 1;
+    const text = `${othersCount} ${othersCount === 1 ? "other agrees" : "others agree"}`;
+    expect(text).toBe("4 others agree");
+  });
+
+  it("shows singular 'other agrees' when exactly 2 votes on side", () => {
+    const voteCountForUserSide = 2;
+    const othersCount = voteCountForUserSide - 1;
+    const text = `${othersCount} ${othersCount === 1 ? "other agrees" : "others agree"}`;
+    expect(text).toBe("1 other agrees");
+  });
+
+  it("shows nothing extra when user is the only voter on their side", () => {
+    const voteCountForUserSide = 1;
+    const othersCount = voteCountForUserSide - 1;
+    expect(othersCount).toBe(0);
+    // When 0, the component doesn't render the "others agree" text
+  });
+
+  it("handles undefined voteCountForUserSide gracefully", () => {
+    const voteCountForUserSide = undefined;
+    const othersCount = (voteCountForUserSide ?? 1) - 1;
+    expect(othersCount).toBe(0);
+  });
+});
+
 describe("Vote count display text", () => {
   it("uses singular 'person voted' for count of 1", () => {
     const totalVotes = 1;

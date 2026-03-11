@@ -14,6 +14,7 @@ type VoteButtonsProps = {
   isExpired: boolean;
   isLoggedIn: boolean;
   slug: string;
+  voteCountForUserSide?: number;
 };
 
 export const VoteButtons = ({
@@ -24,6 +25,7 @@ export const VoteButtons = ({
   isExpired,
   isLoggedIn,
   slug,
+  voteCountForUserSide,
 }: VoteButtonsProps) => {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -53,12 +55,16 @@ export const VoteButtons = ({
   }
 
   if (userVote) {
+    const othersCount = (voteCountForUserSide ?? 1) - 1;
     return (
       <p className="text-muted-foreground text-center text-sm">
         You&apos;re with{" "}
         <span className="font-semibold">
           {userVote === "a" ? sideA : sideB}
         </span>
+        {othersCount > 0 && (
+          <>. {othersCount} {othersCount === 1 ? "other agrees" : "others agree"}</>
+        )}
       </p>
     );
   }
@@ -72,7 +78,7 @@ export const VoteButtons = ({
           onClick={() => handleVote("a")}
           disabled={loading}
         >
-          {sideA}
+          I&apos;m with {sideA}
         </Button>
         <Button
           variant="outline"
@@ -80,7 +86,7 @@ export const VoteButtons = ({
           onClick={() => handleVote("b")}
           disabled={loading}
         >
-          {sideB}
+          I&apos;m with {sideB}
         </Button>
       </div>
       {!isLoggedIn && (
