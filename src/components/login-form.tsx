@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +25,8 @@ export const LoginForm = () => {
   const [otp, setOtp] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
+  const autoSubmitting = useRef(false);
 
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,21 +44,41 @@ export const LoginForm = () => {
     setStep("otp");
   };
 
-  const handleVerifyOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
+  const handleVerifyOtp = useCallback(
+    async (e?: React.FormEvent) => {
+      e?.preventDefault();
+      if (loading || autoSubmitting.current) return;
+      autoSubmitting.current = true;
+      setError("");
+      setLoading(true);
 
-    const result = await verifyOtp(phone, otp);
-    setLoading(false);
+      const result = await verifyOtp(phone, otp);
+      setLoading(false);
+      autoSubmitting.current = false;
 
-    if (result.error) {
-      setError(result.error);
-      return;
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
+
+      router.push(redirectTo);
+      router.refresh();
+    },
+    [phone, otp, loading, redirectTo, router],
+  );
+
+  const handleOtpChange = (value: string) => {
+    // Strip non-numeric characters
+    const digits = value.replace(/\D/g, "").slice(0, 6);
+    setOtp(digits);
+
+    // Auto-submit when 6 digits are entered
+    if (digits.length === 6 && !autoSubmitting.current) {
+      // Use setTimeout to let React update state before submitting
+      setTimeout(() => {
+        formRef.current?.requestSubmit();
+      }, 0);
     }
-
-    router.push(redirectTo);
-    router.refresh();
   };
 
   return (
@@ -81,6 +103,7 @@ export const LoginForm = () => {
                   placeholder="(555) 123-4567"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
+                  autoComplete="tel"
                   required
                   autoFocus
                 />
@@ -91,17 +114,20 @@ export const LoginForm = () => {
               </Button>
             </form>
           ) : (
-            <form onSubmit={handleVerifyOtp} className="space-y-4">
+            <form ref={formRef} onSubmit={handleVerifyOtp} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="otp">Your code</Label>
                 <Input
                   id="otp"
                   type="text"
                   inputMode="numeric"
-                  placeholder="123456"
+                  pattern="[0-9]*"
+                  autoComplete="one-time-code"
+                  placeholder="000000"
                   maxLength={6}
                   value={otp}
-                  onChange={(e) => setOtp(e.target.value)}
+                  onChange={(e) => handleOtpChange(e.target.value)}
+                  className="text-center text-2xl tracking-[0.3em] font-mono"
                   required
                   autoFocus
                 />

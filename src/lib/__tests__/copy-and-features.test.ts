@@ -334,3 +334,30 @@ describe("Vote count display text", () => {
     expect(`3 ${"people have"} voted`).toBe("3 people have voted");
   });
 });
+
+describe("OTP input handling", () => {
+  const stripNonDigits = (value: string) => value.replace(/\D/g, "").slice(0, 6);
+
+  it("strips non-numeric characters from OTP input", () => {
+    expect(stripNonDigits("12ab34")).toBe("1234");
+    expect(stripNonDigits("1-2-3-4-5-6")).toBe("123456");
+    expect(stripNonDigits(" 123 456 ")).toBe("123456");
+  });
+
+  it("truncates to 6 digits", () => {
+    expect(stripNonDigits("12345678")).toBe("123456");
+    expect(stripNonDigits("123456")).toBe("123456");
+  });
+
+  it("handles empty and whitespace input", () => {
+    expect(stripNonDigits("")).toBe("");
+    expect(stripNonDigits("   ")).toBe("");
+  });
+
+  it("auto-submit triggers at exactly 6 digits", () => {
+    const shouldAutoSubmit = (digits: string) => digits.length === 6;
+    expect(shouldAutoSubmit("12345")).toBe(false);
+    expect(shouldAutoSubmit("123456")).toBe(true);
+    expect(shouldAutoSubmit("1234")).toBe(false);
+  });
+});
