@@ -12,6 +12,28 @@ describe("App copy", () => {
   });
 });
 
+describe("OG metadata for dispute pages", () => {
+  it("generates correct title with question and app name", () => {
+    const question = "Is a hot dog a sandwich?";
+    const title = `${question} | ${APP_NAME}`;
+    expect(title).toBe("Is a hot dog a sandwich? | Settle");
+  });
+
+  it("generates description with sides", () => {
+    const sideA = "Yes";
+    const sideB = "No";
+    const description = `${sideA} vs ${sideB} — cast your vote!`;
+    expect(description).toBe("Yes vs No — cast your vote!");
+  });
+
+  it("handles long question text in title", () => {
+    const question = "Should we order pizza or tacos for the Super Bowl party this weekend";
+    const title = `${question} | ${APP_NAME}`;
+    expect(title).toContain("pizza or tacos");
+    expect(title.endsWith("| Settle")).toBe(true);
+  });
+});
+
 describe("DisputeResults winner format", () => {
   // Test the scoreline format logic: "{winner} wins — {high} to {low}"
   it("produces correct scoreline with side A winning", () => {

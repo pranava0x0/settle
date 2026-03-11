@@ -1,7 +1,9 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isExpired } from "@/lib/utils";
 import { closeDispute } from "@/lib/actions/disputes";
+import { APP_NAME } from "@/lib/constants";
 import {
   Card,
   CardContent,
@@ -19,6 +21,39 @@ import { VoterBreakdown } from "@/components/voter-breakdown";
 type PageProps = {
   params: Promise<{ slug: string }>;
 };
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const supabase = await createClient();
+
+  const { data: dispute } = await supabase
+    .from("disputes")
+    .select("question, side_a, side_b")
+    .eq("slug", slug)
+    .single();
+
+  if (!dispute) {
+    return { title: "Not Found" };
+  }
+
+  const description = `${dispute.side_a} vs ${dispute.side_b} — cast your vote!`;
+
+  return {
+    title: `${dispute.question} | ${APP_NAME}`,
+    description,
+    openGraph: {
+      title: dispute.question,
+      description,
+      siteName: APP_NAME,
+      type: "website",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: dispute.question,
+      description,
+    },
+  };
+}
 
 export default async function DisputePage({ params }: PageProps) {
   const { slug } = await params;
