@@ -29,12 +29,13 @@ export function useCountdown(expiresAt: string) {
   const minutes = Math.floor((timeRemaining % (1000 * 60 * 60)) / (1000 * 60));
   const seconds = Math.floor((timeRemaining % (1000 * 60)) / 1000);
 
+  const totalMinutes = hours * 60 + minutes;
   const formatted =
-    hours > 0
-      ? `${hours}h ${minutes}m ${seconds}s`
-      : minutes > 0
-        ? `${minutes}m ${seconds}s`
-        : `${seconds}s`;
+    totalMinutes < 5
+      ? `${String(totalMinutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`
+      : hours > 0
+        ? `${hours}h ${minutes}m`
+        : `${minutes}m`;
 
   return { timeRemaining, isExpired, hours, minutes, seconds, formatted };
 }

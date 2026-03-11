@@ -84,46 +84,25 @@ describe("DisputeResults winner format", () => {
 });
 
 describe("DisputeCard status labels", () => {
+  const getStatusLabel = (status: string, winnerSide: "a" | "b" | null) => {
+    const settled = status !== "open";
+    return settled
+      ? winnerSide
+        ? "Settled"
+        : "No winner"
+      : "Live";
+  };
+
   it("shows 'Settled' when dispute has a winner", () => {
-    const status = "closed";
-    const winnerSide: "a" | "b" | null = "a";
-    const settled = status !== "open";
-
-    const statusLabel = settled
-      ? winnerSide
-        ? "Settled"
-        : "It's a tie"
-      : "Votes are in";
-
-    expect(statusLabel).toBe("Settled");
+    expect(getStatusLabel("closed", "a")).toBe("Settled");
   });
 
-  it("shows 'It's a tie' when no winner", () => {
-    const status = "expired";
-    const winnerSide: "a" | "b" | null = null;
-    const settled = status !== "open";
-
-    const statusLabel = settled
-      ? winnerSide
-        ? "Settled"
-        : "It's a tie"
-      : "Votes are in";
-
-    expect(statusLabel).toBe("It's a tie");
+  it("shows 'No winner' when no winner", () => {
+    expect(getStatusLabel("expired", null)).toBe("No winner");
   });
 
-  it("shows 'Votes are in' when voting is open", () => {
-    const status = "open";
-    const winnerSide: "a" | "b" | null = null;
-    const settled = status !== "open";
-
-    const statusLabel = settled
-      ? winnerSide
-        ? "Settled"
-        : "It's a tie"
-      : "Votes are in";
-
-    expect(statusLabel).toBe("Votes are in");
+  it("shows 'Live' when voting is open", () => {
+    expect(getStatusLabel("open", null)).toBe("Live");
   });
 });
 
@@ -208,6 +187,34 @@ describe("DisputeCard vote count badge", () => {
     const d: { votes?: Array<{ count: number }> } = {};
     const count = d.votes?.[0]?.count ?? 0;
     expect(count).toBe(0);
+  });
+});
+
+describe("Countdown timer formatting", () => {
+  const formatCountdown = (hours: number, minutes: number, seconds: number) => {
+    const totalMinutes = hours * 60 + minutes;
+    return totalMinutes < 5
+      ? `${String(totalMinutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`
+      : hours > 0
+        ? `${hours}h ${minutes}m`
+        : `${minutes}m`;
+  };
+
+  it("shows MM:SS format when under 5 minutes", () => {
+    expect(formatCountdown(0, 4, 30)).toBe("04:30");
+    expect(formatCountdown(0, 0, 45)).toBe("00:45");
+    expect(formatCountdown(0, 3, 12)).toBe("03:12");
+  });
+
+  it("shows hours and minutes when >= 5 minutes", () => {
+    expect(formatCountdown(1, 23, 0)).toBe("1h 23m");
+    expect(formatCountdown(0, 30, 15)).toBe("30m");
+    expect(formatCountdown(0, 5, 0)).toBe("5m");
+  });
+
+  it("pads MM:SS correctly at boundaries", () => {
+    expect(formatCountdown(0, 4, 59)).toBe("04:59");
+    expect(formatCountdown(0, 0, 1)).toBe("00:01");
   });
 });
 

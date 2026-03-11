@@ -118,10 +118,10 @@ export default async function DisputePage({ params }: PageProps) {
               }
             >
               {dispute.status === "open"
-                ? "Votes are in"
+                ? "Live"
                 : dispute.status === "closed"
                   ? "Settled"
-                  : "Time's up"}
+                  : "Closed"}
             </Badge>
             {!isClosed && !expired && (
               <CountdownTimer expiresAt={dispute.expires_at} />

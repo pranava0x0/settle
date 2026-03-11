@@ -38,10 +38,10 @@ export const DisputeCard = ({
   const statusLabel = settled
     ? winnerSide
       ? "Settled"
-      : "It's a tie"
+      : "No winner"
     : expired
-      ? "Time's up"
-      : "Votes are in";
+      ? "Closed"
+      : "Live";
 
   const statusVariant = settled || expired ? "secondary" : "default";
 
