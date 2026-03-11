@@ -8,6 +8,10 @@ import {
   ROUTES,
   PROTECTED_ROUTES,
   PUBLIC_ROUTES,
+  SQUABBLE_THEMES,
+  DEFAULT_THEME,
+  THEME_STORAGE_KEY,
+  THEME_LIST,
 } from "@/lib/constants";
 
 describe("SQUABBLE_STATUS", () => {
@@ -105,5 +109,82 @@ describe("PUBLIC_ROUTES", () => {
 describe("APP_NAME", () => {
   it("is Squabble", () => {
     expect(APP_NAME).toBe("Squabble");
+  });
+});
+
+describe("SQUABBLE_THEMES", () => {
+  it("has exactly three themes", () => {
+    expect(Object.keys(SQUABBLE_THEMES)).toHaveLength(3);
+  });
+
+  it("contains ring, molten, and impact", () => {
+    expect(SQUABBLE_THEMES.RING).toBe("ring");
+    expect(SQUABBLE_THEMES.MOLTEN).toBe("molten");
+    expect(SQUABBLE_THEMES.IMPACT).toBe("impact");
+  });
+});
+
+describe("DEFAULT_THEME", () => {
+  it("defaults to ring (boxing)", () => {
+    expect(DEFAULT_THEME).toBe("ring");
+  });
+
+  it("is a valid theme from SQUABBLE_THEMES", () => {
+    const validThemes = Object.values(SQUABBLE_THEMES);
+    expect(validThemes).toContain(DEFAULT_THEME);
+  });
+});
+
+describe("THEME_STORAGE_KEY", () => {
+  it("is a non-empty string", () => {
+    expect(typeof THEME_STORAGE_KEY).toBe("string");
+    expect(THEME_STORAGE_KEY.length).toBeGreaterThan(0);
+  });
+});
+
+describe("THEME_LIST", () => {
+  it("has exactly three entries", () => {
+    expect(THEME_LIST).toHaveLength(3);
+  });
+
+  it("each entry has required fields", () => {
+    for (const theme of THEME_LIST) {
+      expect(typeof theme.id).toBe("string");
+      expect(typeof theme.emoji).toBe("string");
+      expect(typeof theme.label).toBe("string");
+      expect(typeof theme.gradient).toBe("string");
+      expect(typeof theme.activeRing).toBe("string");
+      expect(theme.emoji.length).toBeGreaterThan(0);
+      expect(theme.label.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("theme IDs match SQUABBLE_THEMES values", () => {
+    const themeValues = Object.values(SQUABBLE_THEMES);
+    for (const theme of THEME_LIST) {
+      expect(themeValues).toContain(theme.id);
+    }
+  });
+
+  it("has unique IDs", () => {
+    const ids = THEME_LIST.map((t) => t.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it("each theme has a Tailwind gradient class", () => {
+    for (const theme of THEME_LIST) {
+      expect(theme.gradient).toMatch(/^bg-gradient-to-/);
+    }
+  });
+
+  it("each theme has a ring color class", () => {
+    for (const theme of THEME_LIST) {
+      expect(theme.activeRing).toMatch(/^ring-/);
+    }
+  });
+
+  it("includes the default theme", () => {
+    const ids = THEME_LIST.map((t) => t.id);
+    expect(ids).toContain(DEFAULT_THEME);
   });
 });

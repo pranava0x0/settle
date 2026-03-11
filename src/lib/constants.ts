@@ -37,3 +37,45 @@ export const ROUTES = {
 
 export const PROTECTED_ROUTES = ["/dashboard", "/create"];
 export const PUBLIC_ROUTES = ["/", "/login"];
+
+export const SQUABBLE_THEMES = {
+  RING: "ring",
+  MOLTEN: "molten",
+  IMPACT: "impact",
+} as const;
+
+export type SquabbleTheme = "none" | (typeof SQUABBLE_THEMES)[keyof typeof SQUABBLE_THEMES];
+
+export const DEFAULT_THEME: SquabbleTheme = SQUABBLE_THEMES.RING;
+
+export const THEME_STORAGE_KEY = "squabble-theme";
+
+export const THEME_LIST: {
+  id: SquabbleTheme;
+  emoji: string;
+  label: string;
+  gradient: string;
+  activeRing: string;
+}[] = [
+  {
+    id: SQUABBLE_THEMES.RING,
+    emoji: "\uD83E\uDD4A",
+    label: "The Ring",
+    gradient: "bg-gradient-to-r from-red-500 via-yellow-400 to-blue-600",
+    activeRing: "ring-red-400/60",
+  },
+  {
+    id: SQUABBLE_THEMES.MOLTEN,
+    emoji: "\uD83C\uDF0B",
+    label: "Molten",
+    gradient: "bg-gradient-to-r from-orange-600 via-red-500 to-yellow-500",
+    activeRing: "ring-orange-400/60",
+  },
+  {
+    id: SQUABBLE_THEMES.IMPACT,
+    emoji: "\u2604\uFE0F",
+    label: "Impact",
+    gradient: "bg-gradient-to-r from-cyan-400 via-purple-500 to-orange-500",
+    activeRing: "ring-cyan-400/60",
+  },
+];
