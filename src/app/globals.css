@@ -127,3 +127,411 @@
     @apply font-sans;
   }
 }
+
+/* ============================================================
+   SQUABBLE THEMES — Animated dispute skins
+   Three visual themes applied via CSS class on #squabble-page
+   ============================================================ */
+
+/* --- Theme: The Ring (Boxing) --- */
+.theme-ring {
+  --ring-red: #dc2626;
+  --ring-blue: #2563eb;
+  --ring-canvas: #f5e6d3;
+  --ring-rope: #1a1a1a;
+  background: var(--ring-canvas);
+  border-radius: 1rem;
+  padding: 0.5rem;
+  position: relative;
+}
+
+.theme-ring [data-slot="card"] {
+  background: var(--ring-canvas);
+  border: 3px solid var(--ring-rope);
+  box-shadow: inset 0 0 0 2px var(--ring-rope), 0 4px 20px rgba(0,0,0,0.15);
+}
+
+.theme-ring [data-slot="card-header"] {
+  border-bottom: 2px solid var(--ring-rope);
+}
+
+/* Red corner / Blue corner vote buttons */
+.theme-ring .grid-cols-2 > button:first-child {
+  background: var(--ring-red) !important;
+  color: white !important;
+  border-color: #991b1b !important;
+  font-weight: 700;
+}
+
+.theme-ring .grid-cols-2 > button:last-child {
+  background: var(--ring-blue) !important;
+  color: white !important;
+  border-color: #1e40af !important;
+  font-weight: 700;
+}
+
+/* Vote bars: red vs blue corners */
+.theme-ring .rounded-full .rounded-full:first-child {
+  background: var(--ring-red) !important;
+}
+
+.theme-ring .space-y-3 > div:first-child .rounded-full .rounded-full {
+  background: var(--ring-red) !important;
+}
+
+.theme-ring .space-y-3 > div:last-child .rounded-full .rounded-full {
+  background: var(--ring-blue) !important;
+}
+
+/* Timer styled as round countdown */
+.theme-ring .font-mono {
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Ring bell shake when closing soon */
+@keyframes ring-bell-shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-2px); }
+  20%, 40%, 60%, 80% { transform: translateX(2px); }
+}
+
+.theme-ring .animate-pulse {
+  animation: ring-bell-shake 0.5s ease-in-out infinite !important;
+}
+
+/* Glove collision on vote cast */
+@keyframes glove-left {
+  0% { transform: translateX(-100vw) rotate(-20deg); opacity: 1; }
+  50% { transform: translateX(0) rotate(0deg); opacity: 1; }
+  60% { transform: translateX(10px) scale(1.2); }
+  100% { transform: translateX(-30px) rotate(-10deg); opacity: 0; }
+}
+
+@keyframes glove-right {
+  0% { transform: translateX(100vw) rotate(20deg); opacity: 1; }
+  50% { transform: translateX(0) rotate(0deg); opacity: 1; }
+  60% { transform: translateX(-10px) scale(1.2); }
+  100% { transform: translateX(30px) rotate(10deg); opacity: 0; }
+}
+
+@keyframes impact-shake {
+  0%, 100% { transform: translate(0); }
+  25% { transform: translate(-4px, 2px); }
+  50% { transform: translate(4px, -2px); }
+  75% { transform: translate(-2px, 4px); }
+}
+
+/* Winner reveal overlay */
+@keyframes knockout-reveal {
+  0% { opacity: 0; transform: scale(0.5); }
+  50% { opacity: 1; transform: scale(1.1); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+/* Star spiral for winner */
+@keyframes star-spiral {
+  0% { transform: rotate(0deg) translateY(0) scale(0); opacity: 1; }
+  100% { transform: rotate(720deg) translateY(-80px) scale(1.5); opacity: 0; }
+}
+
+/* --- Theme: Molten (Volcano) --- */
+.theme-molten {
+  --molten-ash: #1a1a1a;
+  --molten-lava: #ff6b00;
+  --molten-red: #cc2200;
+  --molten-glow: #ff8c00;
+  background: var(--molten-ash);
+  border-radius: 1rem;
+  padding: 0.5rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.theme-molten::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at bottom, rgba(255,107,0,0.1) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.theme-molten > * {
+  position: relative;
+  z-index: 1;
+}
+
+.theme-molten [data-slot="card"] {
+  background: #222;
+  border: 1px solid rgba(255,107,0,0.3);
+  color: #fafafa;
+  box-shadow: 0 0 30px rgba(255,107,0,0.1);
+}
+
+.theme-molten [data-slot="card-header"],
+.theme-molten [data-slot="card-content"] {
+  color: #fafafa;
+}
+
+.theme-molten [data-slot="card"] * {
+  color: inherit;
+}
+
+/* Lava-colored vote buttons */
+.theme-molten .grid-cols-2 > button:first-child {
+  background: var(--molten-lava) !important;
+  color: white !important;
+  border-color: var(--molten-red) !important;
+  font-weight: 700;
+  animation: lava-breathe 3s ease-in-out infinite;
+}
+
+.theme-molten .grid-cols-2 > button:last-child {
+  background: var(--molten-red) !important;
+  color: white !important;
+  border-color: #8b0000 !important;
+  font-weight: 700;
+  animation: lava-breathe 3s ease-in-out infinite 1.5s;
+}
+
+@keyframes lava-breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+}
+
+/* Lava vote bars */
+.theme-molten .space-y-3 > div:first-child .rounded-full .rounded-full {
+  background: linear-gradient(90deg, var(--molten-red), var(--molten-lava)) !important;
+}
+
+.theme-molten .space-y-3 > div:last-child .rounded-full .rounded-full {
+  background: linear-gradient(90deg, var(--molten-glow), var(--molten-red)) !important;
+}
+
+/* Heat shimmer background */
+@keyframes heat-shimmer {
+  0%, 100% { transform: translateY(0) scaleX(1); filter: blur(0px); }
+  25% { transform: translateY(-1px) scaleX(1.001); filter: blur(0.3px); }
+  50% { transform: translateY(1px) scaleX(0.999); filter: blur(0.5px); }
+  75% { transform: translateY(-0.5px) scaleX(1.001); filter: blur(0.2px); }
+}
+
+.theme-molten [data-slot="card"] {
+  animation: heat-shimmer 4s ease-in-out infinite;
+}
+
+/* Lava bubbles increasing with urgency */
+@keyframes lava-bubble {
+  0%, 100% { transform: translateY(0) scale(1); opacity: 0.6; }
+  50% { transform: translateY(-8px) scale(1.3); opacity: 1; }
+}
+
+.theme-molten .animate-pulse {
+  animation: lava-bubble 0.6s ease-in-out infinite !important;
+  color: var(--molten-lava) !important;
+}
+
+/* Eruption animation for vote cast */
+@keyframes lava-erupt {
+  0% { transform: translateY(0) scale(1); opacity: 1; }
+  50% { transform: translateY(-60px) scale(1.5); opacity: 0.8; }
+  100% { transform: translateY(-100px) scale(0.5); opacity: 0; }
+}
+
+/* Rumble for closing soon */
+@keyframes volcano-rumble {
+  0%, 100% { transform: translate(0); }
+  10% { transform: translate(-1px, 1px); }
+  20% { transform: translate(2px, -1px); }
+  30% { transform: translate(-2px, 2px); }
+  40% { transform: translate(1px, -2px); }
+  50% { transform: translate(-1px, 1px); }
+  60% { transform: translate(2px, 1px); }
+  70% { transform: translate(-2px, -1px); }
+  80% { transform: translate(1px, 2px); }
+  90% { transform: translate(-1px, -1px); }
+}
+
+/* Ember particles floating up */
+@keyframes ember-float {
+  0% { transform: translateY(0) scale(1); opacity: 1; }
+  100% { transform: translateY(-120px) translateX(var(--drift, 10px)) scale(0.3); opacity: 0; }
+}
+
+/* --- Theme: Impact (Meteor Collision) --- */
+.theme-impact {
+  --impact-void: #0a0a0f;
+  --impact-blue: #00bfff;
+  --impact-orange: #ff8c00;
+  --impact-white: #ffffff;
+  background: var(--impact-void);
+  border-radius: 1rem;
+  padding: 0.5rem;
+  position: relative;
+  overflow: hidden;
+}
+
+/* CSS Starfield */
+.theme-impact::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(1px 1px at 10% 20%, white 50%, transparent 100%),
+    radial-gradient(1px 1px at 30% 70%, white 50%, transparent 100%),
+    radial-gradient(1px 1px at 50% 10%, rgba(255,255,255,0.8) 50%, transparent 100%),
+    radial-gradient(1px 1px at 70% 40%, white 50%, transparent 100%),
+    radial-gradient(1px 1px at 90% 80%, rgba(255,255,255,0.6) 50%, transparent 100%),
+    radial-gradient(1px 1px at 15% 55%, white 50%, transparent 100%),
+    radial-gradient(1px 1px at 45% 85%, rgba(255,255,255,0.7) 50%, transparent 100%),
+    radial-gradient(1px 1px at 65% 25%, white 50%, transparent 100%),
+    radial-gradient(1px 1px at 85% 60%, rgba(255,255,255,0.5) 50%, transparent 100%),
+    radial-gradient(1px 1px at 25% 95%, white 50%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 5% 45%, rgba(0,191,255,0.4) 50%, transparent 100%),
+    radial-gradient(1.5px 1.5px at 55% 50%, rgba(255,140,0,0.3) 50%, transparent 100%),
+    radial-gradient(1px 1px at 75% 15%, white 50%, transparent 100%),
+    radial-gradient(1px 1px at 40% 35%, rgba(255,255,255,0.9) 50%, transparent 100%),
+    radial-gradient(1px 1px at 95% 5%, white 50%, transparent 100%);
+  animation: starfield-drift 20s linear infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes starfield-drift {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(10px); }
+}
+
+.theme-impact > * {
+  position: relative;
+  z-index: 1;
+}
+
+.theme-impact [data-slot="card"] {
+  background: rgba(10,10,15,0.9);
+  border: 1px solid rgba(0,191,255,0.2);
+  color: #e8e8e8;
+  box-shadow: 0 0 40px rgba(0,191,255,0.05), 0 0 40px rgba(255,140,0,0.05);
+}
+
+.theme-impact [data-slot="card-header"],
+.theme-impact [data-slot="card-content"] {
+  color: #e8e8e8;
+}
+
+.theme-impact [data-slot="card"] * {
+  color: inherit;
+}
+
+/* Meteor vote buttons */
+.theme-impact .grid-cols-2 > button:first-child {
+  background: var(--impact-blue) !important;
+  color: #0a0a0f !important;
+  border-color: #0099cc !important;
+  font-weight: 700;
+  position: relative;
+  overflow: hidden;
+}
+
+.theme-impact .grid-cols-2 > button:first-child::after {
+  content: '';
+  position: absolute;
+  right: -10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 4px;
+  background: linear-gradient(to left, transparent, var(--impact-blue));
+  filter: blur(2px);
+  animation: trail-pulse 2s ease-in-out infinite;
+}
+
+.theme-impact .grid-cols-2 > button:last-child {
+  background: var(--impact-orange) !important;
+  color: #0a0a0f !important;
+  border-color: #cc7000 !important;
+  font-weight: 700;
+  position: relative;
+  overflow: hidden;
+}
+
+.theme-impact .grid-cols-2 > button:last-child::after {
+  content: '';
+  position: absolute;
+  left: -10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 4px;
+  background: linear-gradient(to right, transparent, var(--impact-orange));
+  filter: blur(2px);
+  animation: trail-pulse 2s ease-in-out infinite 1s;
+}
+
+@keyframes trail-pulse {
+  0%, 100% { opacity: 0.3; width: 20px; }
+  50% { opacity: 1; width: 30px; }
+}
+
+/* Meteor vote bars */
+.theme-impact .space-y-3 > div:first-child .rounded-full .rounded-full {
+  background: linear-gradient(90deg, var(--impact-blue), #66d9ff) !important;
+  box-shadow: 0 0 10px rgba(0,191,255,0.5);
+}
+
+.theme-impact .space-y-3 > div:last-child .rounded-full .rounded-full {
+  background: linear-gradient(270deg, var(--impact-orange), #ffb347) !important;
+  box-shadow: 0 0 10px rgba(255,140,0,0.5);
+}
+
+/* Timer as trajectory countdown */
+.theme-impact .font-mono {
+  color: var(--impact-blue) !important;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+
+/* Accelerating meteors when closing soon */
+.theme-impact .animate-pulse {
+  animation: meteor-accelerate 0.8s ease-in-out infinite !important;
+  color: var(--impact-orange) !important;
+}
+
+@keyframes meteor-accelerate {
+  0%, 100% { transform: scale(1); text-shadow: 0 0 5px rgba(255,140,0,0.3); }
+  50% { transform: scale(1.05); text-shadow: 0 0 15px rgba(255,140,0,0.8); }
+}
+
+/* Shockwave for winner reveal */
+@keyframes shockwave {
+  0% { transform: scale(0); opacity: 1; border-width: 4px; }
+  100% { transform: scale(4); opacity: 0; border-width: 1px; }
+}
+
+/* Screen edge glow for closing soon */
+.theme-impact [data-slot="card"]:has(.animate-pulse) {
+  box-shadow: 0 0 30px rgba(255,140,0,0.2), 0 0 60px rgba(0,191,255,0.1);
+}
+
+/* Winner badge styling per theme */
+.theme-ring [data-slot="badge"] {
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.theme-molten [data-slot="badge"] {
+  background: var(--molten-lava) !important;
+  color: white !important;
+  border: none !important;
+  box-shadow: 0 0 10px rgba(255,107,0,0.4);
+}
+
+.theme-impact [data-slot="badge"] {
+  background: var(--impact-blue) !important;
+  color: #0a0a0f !important;
+  border: none !important;
+  box-shadow: 0 0 10px rgba(0,191,255,0.3);
+}

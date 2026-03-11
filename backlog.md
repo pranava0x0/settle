@@ -221,3 +221,55 @@ Prioritized by impact on viral growth, share flow, and core UX delight.
 - **Priority:** low
 - **Description:** Support system-preferred color scheme with Tailwind dark mode. Most users share links at night. Low effort with Tailwind — just add dark: variants to key components.
 - **Status:** backlog
+
+---
+
+## THEMES — Animated dispute skins
+
+Three optional visual themes selectable via a small pill toggle (🥊 🌋 ☄️) pinned at the top of the dispute page. Theme choice stored in `localStorage`. Each theme swaps a CSS class on the page wrapper and plugs into existing animation hooks (vote cast, timer urgency, winner reveal). Default/no-theme always works as baseline.
+
+---
+
+### Theme: "The Ring" 🥊 (Boxing)
+- **Date Added:** 2026-03-11
+- **Priority:** low
+- **Description:** Full boxing match aesthetic for the dispute page.
+  - **Toggle:** Small 🥊 pill in the top bar alongside 🌋 and ☄️. Active theme gets a filled background.
+  - **Vote buttons:** Styled as "Red Corner" and "Blue Corner" — each button has a corner-stool silhouette icon.
+  - **On vote cast:** Two boxing gloves animate in from opposite sides of the screen, collide center-screen with a shake/impact frame (CSS `@keyframes`), then bounce back. The voted side's glove lingers slightly larger.
+  - **Vote bar:** Horizontal tug-of-war rope — each side's section pulls toward their corner. Rope frays and shakes when gap is <2 votes.
+  - **Timer:** Styled as a round-countdown — bell icon, "Round ending in 4:32." Under 10 seconds: rapid bell flash animation.
+  - **Closing soon state:** Screen shakes with a subtle ring-the-bell vibration pattern via CSS animation + `navigator.vibrate()`.
+  - **Winner reveal:** Full-screen overlay: "KNOCKOUT — [Side] wins by TKO, [X]–[Y]" with a slow-motion glove impact freeze frame. Confetti replaced with cartoon ⭐ stars spiraling outward.
+  - **Color palette:** canvas tan bg, red vs blue corners, black ropes.
+- **Status:** backlog
+
+### Theme: "Molten" 🌋 (Volcano Eruption)
+- **Date Added:** 2026-03-11
+- **Priority:** low
+- **Description:** Two rival volcanoes — each side's vote pressure builds until one erupts.
+  - **Toggle:** 🌋 pill alongside 🥊 and ☄️.
+  - **Vote buttons:** Lava-red and magma-orange buttons with a volcanic crater icon. Subtle idle breathing animation (scale pulse) while awaiting votes.
+  - **Vote bar:** Two vertical lava columns rising from the bottom of the screen, one per side. Columns fill upward as votes come in — whichever side's lava overflows the midpoint wins. Real-time Supabase updates trigger fluid fill animations.
+  - **On vote cast:** A lava blob erupts upward from the voted side's column, arcs, and spatters back down as ember particles (Canvas or CSS clip-path animation). Page briefly flashes orange.
+  - **Background:** Charcoal/ash dark bg with a subtle animated heat-shimmer effect (CSS blur + translate keyframes on a semi-transparent overlay).
+  - **Timer urgency:** Lava bubbles increase in frequency as timer depletes — slow idle bubble at >25%, rapid boiling at <5min.
+  - **Closing soon:** Both volcanoes rumble (translate shake), pressure gauge fills red, "ABOUT TO ERUPT" label pulses.
+  - **Winner reveal:** The winning side's volcano fully erupts — lava particle system floods the screen bottom-up, clearing to reveal "ERUPTION — [Side] overwhelms [X]–[Y]." Confetti replaced with glowing ember/ash particles floating upward.
+  - **Color palette:** dark ash (#1a1a1a) bg, lava orange (#FF6B00) and molten red (#CC2200), glow accents.
+- **Status:** backlog
+
+### Theme: "Impact" ☄️ (Meteor Collision)
+- **Date Added:** 2026-03-11
+- **Priority:** low
+- **Description:** Two meteors on a collision course — each vote accelerates one toward the other. When the dispute closes, they collide.
+  - **Toggle:** ☄️ pill alongside 🥊 and 🌋.
+  - **Vote buttons:** Each button is a meteor — Side A fires from left, Side B from right. Buttons have animated particle trails behind them (CSS `::after` pseudo-element with blur).
+  - **Vote bar:** The two meteors are positioned at opposite edges of a horizontal track, moving toward each other. The vote-weighted side's meteor is larger and moves faster. The gap between them shrinks in real-time as votes arrive.
+  - **On vote cast:** The voted meteor surges forward — a brief speed-boost flash with a comet tail that lingers 500ms. Screen flashes white for 1 frame.
+  - **Background:** Deep space — animated CSS starfield (50–80 white dot pseudo-elements moving slowly on `transform: translateY` loop). No heavy canvas needed.
+  - **Timer:** "Impact in 4:32" with a trajectory arc graphic. Under 5 minutes: trajectory line turns red, both meteors pulse.
+  - **Closing soon:** Both meteors visibly accelerating — trail particles thicken and intensify, screen edges glow.
+  - **Winner reveal:** Meteors slam together center-screen — full-screen shockwave ring animation expanding outward (CSS `scale` + `opacity` keyframes), screen whites out, then reveals "IMPACT — [Side] obliterates [X]–[Y]. The dust has settled." Confetti replaced with debris chunks flying outward from center in all directions.
+  - **Color palette:** void black bg, electric blue (#00BFFF) for Side A, burning orange (#FF8C00) for Side B, white shockwave.
+- **Status:** backlog
