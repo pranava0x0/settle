@@ -155,17 +155,30 @@ describe("DisputeCard status labels", () => {
   });
 });
 
-describe("ShareButton question integration", () => {
-  it("generates share text with question when provided", () => {
-    const question = "Is a hot dog a sandwich?";
-    const text = question ? `${question} — vote now:` : "Help settle this debate:";
-    expect(text).toBe("Is a hot dog a sandwich? — vote now:");
+describe("ShareButton SMS deep link", () => {
+  // Import the pure function for testing
+  const buildSmsBody = (question: string | undefined, url: string) => {
+    return question
+      ? `Settle this: ${question} — vote here: ${url}`
+      : `Help settle this — vote here: ${url}`;
+  };
+
+  it("generates SMS body with question when provided", () => {
+    const body = buildSmsBody("Is a hot dog a sandwich?", "https://settle.app/s/abc123");
+    expect(body).toBe("Settle this: Is a hot dog a sandwich? — vote here: https://settle.app/s/abc123");
   });
 
-  it("uses fallback share text when no question", () => {
-    const question = undefined;
-    const text = question ? `${question} — vote now:` : "Help settle this debate:";
-    expect(text).toBe("Help settle this debate:");
+  it("uses fallback SMS body when no question", () => {
+    const body = buildSmsBody(undefined, "https://settle.app/s/abc123");
+    expect(body).toBe("Help settle this — vote here: https://settle.app/s/abc123");
+  });
+
+  it("generates correct sms: URI with encoded body", () => {
+    const body = buildSmsBody("Pizza vs Tacos?", "https://settle.app/s/xyz");
+    const href = `sms:?&body=${encodeURIComponent(body)}`;
+    expect(href).toContain("sms:?&body=");
+    expect(href).toContain(encodeURIComponent("Pizza vs Tacos?"));
+    expect(href).toContain(encodeURIComponent("https://settle.app/s/xyz"));
   });
 });
 

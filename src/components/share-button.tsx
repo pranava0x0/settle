@@ -8,38 +8,44 @@ type ShareButtonProps = {
   question?: string;
 };
 
+/**
+ * Build the pre-filled SMS body for sharing a dispute link.
+ * Uses `sms:?&body=` which works on iOS (iMessage) and Android.
+ */
+export function buildSmsHref(question: string | undefined, url: string): string {
+  const body = question
+    ? `Settle this: ${question} — vote here: ${url}`
+    : `Help settle this — vote here: ${url}`;
+  return `sms:?&body=${encodeURIComponent(body)}`;
+}
+
 export const ShareButton = ({ slug, question }: ShareButtonProps) => {
   const [copied, setCopied] = useState(false);
-  const url = typeof window !== "undefined"
-    ? `${window.location.origin}/s/${slug}`
-    : `/s/${slug}`;
+  const url =
+    typeof window !== "undefined"
+      ? `${window.location.origin}/s/${slug}`
+      : `/s/${slug}`;
 
-  const handleShare = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: "Settle this!",
-          text: question ? `${question} — vote now:` : "Help settle this debate:",
-          url,
-        });
-        return;
-      } catch {
-        // User cancelled or share failed — fall through to copy
-      }
-    }
+  const handleTextIt = () => {
+    // On mobile: open SMS app with pre-filled message
+    const smsHref = buildSmsHref(question, url);
+    window.open(smsHref, "_self");
+  };
 
+  const handleCopy = async () => {
     await navigator.clipboard.writeText(url);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
   return (
-    <Button
-      variant="outline"
-      className="w-full"
-      onClick={handleShare}
-    >
-      {copied ? "Link copied!" : "Text it to the group"}
-    </Button>
+    <div className="flex gap-2">
+      <Button className="flex-1" onClick={handleTextIt}>
+        Text it to the group
+      </Button>
+      <Button variant="outline" onClick={handleCopy}>
+        {copied ? "Copied!" : "Copy link"}
+      </Button>
+    </div>
   );
 };
