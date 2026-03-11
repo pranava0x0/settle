@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { APP_NAME, ROUTES } from "@/lib/constants";
-import { buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button-variants";
 import { SignOutButton } from "@/components/sign-out-button";
 
 export const Header = async () => {

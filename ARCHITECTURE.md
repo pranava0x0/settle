@@ -9,9 +9,9 @@ Two friends disagree about something lowkey. Instead of arguing, they open Settl
 ## Stack (Cost-Optimized)
 | Layer | Choice | Cost |
 |-------|--------|------|
-| Frontend | Next.js 15 (App Router) | Free (Vercel) |
+| Frontend | Next.js 16 (App Router, Turbopack) | Free (Vercel) |
 | Backend/DB | Supabase (Postgres + Auth + Realtime) | Free tier (50K MAU, 500MB DB) |
-| Auth | Supabase Phone Auth (SMS OTP) | Free tier covers initial users |
+| Auth | Supabase Phone Auth via Twilio Verify | ~$0.05/verification |
 | Hosting | Vercel | Free (hobby plan) |
 | Styling | Tailwind CSS + shadcn/ui | Free |
 | Timer | Supabase pg_cron or client-side countdown | Free |
@@ -63,15 +63,25 @@ open (timer running, accepting votes)
 
 ## Auth Flow
 ```
-User enters phone number
-  → Supabase sends OTP via SMS
+User enters phone number (10-digit US auto-prepends +1)
+  → Supabase calls Twilio Verify API to send OTP
   → User enters 6-digit code
-  → Supabase returns JWT
+  → Supabase verifies via Twilio Verify → returns JWT
   → Session stored in httpOnly cookie
   → Next.js middleware validates on each request
 ```
 
 No passwords. No email. Phone-only, Partiful-style.
+
+### Why Twilio Verify (not Programmable SMS)
+- US carriers enforce A2P 10DLC registration for all local number SMS. Programmable SMS
+  with a local 10DLC number fails with error 30034 unless you register ($$$, ~1 week).
+- Twilio Verify handles carrier compliance automatically — no A2P registration needed.
+- Works on Twilio trial accounts (limited to verified numbers).
+- Supabase has native "Twilio Verify" provider — just set Account SID, Auth Token, and
+  Verify Service SID in the Supabase Auth dashboard.
+- Cost: ~$0.05/successful verification (vs ~$0.0079/SMS for Programmable SMS, but
+  Programmable SMS requires paid account + A2P registration to actually deliver).
 
 ## Core User Flows
 

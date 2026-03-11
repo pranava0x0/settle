@@ -4,7 +4,6 @@ import { createClient } from "@/lib/supabase/server";
 import { createDisputeSchema } from "@/lib/validations";
 import { generateSlug, getExpiresAt, isExpired } from "@/lib/utils";
 import { redirect } from "next/navigation";
-import { revalidatePath } from "next/cache";
 import { ROUTES } from "@/lib/constants";
 import type { CreateDisputeInput } from "@/lib/validations";
 
@@ -105,6 +104,4 @@ export async function closeDispute(disputeId: string) {
   if (updateError) {
     console.error("closeDispute update error:", updateError.message);
   }
-
-  revalidatePath(`/s/${dispute.slug}`);
 }

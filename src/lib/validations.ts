@@ -31,9 +31,28 @@ export type CastVoteInput = z.infer<typeof castVoteSchema>;
 
 export const phoneSchema = z
   .string()
-  .min(10, "Phone number must be at least 10 digits")
-  .max(15, "Phone number is too long")
-  .regex(/^\+?[1-9]\d{9,14}$/, "Invalid phone number format");
+  .transform((val) => {
+    // Strip spaces, dashes, parens
+    const stripped = val.replace(/[\s\-()]/g, "");
+    // If 10-digit US number (no country code), prepend +1
+    if (/^[2-9]\d{9}$/.test(stripped)) {
+      return `+1${stripped}`;
+    }
+    // If starts with 1 and is 11 digits, prepend +
+    if (/^1[2-9]\d{9}$/.test(stripped)) {
+      return `+${stripped}`;
+    }
+    // If already has +, return as-is
+    if (stripped.startsWith("+")) {
+      return stripped;
+    }
+    return stripped;
+  })
+  .pipe(
+    z
+      .string()
+      .regex(/^\+[1-9]\d{9,14}$/, "Invalid phone number format")
+  );
 
 export const otpSchema = z
   .string()

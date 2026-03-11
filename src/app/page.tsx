@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button-variants";
 import { APP_NAME, APP_DESCRIPTION, ROUTES } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
