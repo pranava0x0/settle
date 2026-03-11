@@ -18,6 +18,7 @@ type DisputeCardProps = {
   winnerSide: "a" | "b" | null;
   expiresAt: string;
   userVoteSide?: "a" | "b" | null;
+  voteCount?: number;
 };
 
 export const DisputeCard = ({
@@ -29,6 +30,7 @@ export const DisputeCard = ({
   winnerSide,
   expiresAt,
   userVoteSide,
+  voteCount,
 }: DisputeCardProps) => {
   const expired = isExpired(expiresAt);
   const settled = status !== "open";
@@ -60,11 +62,18 @@ export const DisputeCard = ({
             <span>vs</span>
             <span>{sideB}</span>
           </div>
-          {winnerSide && (
-            <p className="mt-1 text-sm font-medium">
-              {winnerSide === "a" ? sideA : sideB} wins
-            </p>
-          )}
+          <div className="mt-2 flex items-center gap-3">
+            {winnerSide && (
+              <p className="text-sm font-medium">
+                {winnerSide === "a" ? sideA : sideB} wins
+              </p>
+            )}
+            {voteCount !== undefined && (
+              <p className="text-muted-foreground text-xs">
+                {voteCount} {voteCount === 1 ? "vote" : "votes"}
+              </p>
+            )}
+          </div>
           {userVoteSide && (
             <p className="text-muted-foreground mt-1 text-xs">
               You were with {userVoteSide === "a" ? sideA : sideB}

@@ -176,6 +176,41 @@ describe("VoterBreakdown filtering", () => {
   });
 });
 
+describe("DisputeCard vote count badge", () => {
+  const formatVoteCount = (count: number) =>
+    `${count} ${count === 1 ? "vote" : "votes"}`;
+
+  it("shows '1 vote' (singular) for exactly 1 vote", () => {
+    expect(formatVoteCount(1)).toBe("1 vote");
+  });
+
+  it("shows '0 votes' (plural) for zero votes", () => {
+    expect(formatVoteCount(0)).toBe("0 votes");
+  });
+
+  it("shows '5 votes' (plural) for multiple votes", () => {
+    expect(formatVoteCount(5)).toBe("5 votes");
+  });
+
+  it("extracts count from Supabase embedded count shape", () => {
+    const d = { votes: [{ count: 7 }] };
+    const count = d.votes?.[0]?.count ?? 0;
+    expect(count).toBe(7);
+  });
+
+  it("defaults to 0 when votes array is empty", () => {
+    const d = { votes: [] as Array<{ count: number }> };
+    const count = d.votes?.[0]?.count ?? 0;
+    expect(count).toBe(0);
+  });
+
+  it("defaults to 0 when votes field is undefined", () => {
+    const d: { votes?: Array<{ count: number }> } = {};
+    const count = d.votes?.[0]?.count ?? 0;
+    expect(count).toBe(0);
+  });
+});
+
 describe("Vote count display text", () => {
   it("uses singular 'person voted' for count of 1", () => {
     const totalVotes = 1;

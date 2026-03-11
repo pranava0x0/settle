@@ -15,17 +15,17 @@ export default async function DashboardPage() {
     redirect(ROUTES.LOGIN);
   }
 
-  // Fetch disputes I created
+  // Fetch disputes I created, with vote counts
   const { data: myDisputes } = await supabase
     .from("disputes")
-    .select("*")
+    .select("*, votes(count)")
     .eq("creator_id", user.id)
     .order("created_at", { ascending: false });
 
-  // Fetch disputes I voted on (with vote side)
+  // Fetch disputes I voted on (with vote side and vote counts)
   const { data: myVotes } = await supabase
     .from("votes")
-    .select("side, dispute_id, disputes(*)")
+    .select("side, dispute_id, disputes(*, votes(count))")
     .eq("user_id", user.id)
     .order("created_at", { ascending: false });
 
@@ -33,10 +33,15 @@ export default async function DashboardPage() {
   const activeDisputes = createdDisputes.filter((d) => d.status === "open");
   const settledDisputes = createdDisputes.filter((d) => d.status !== "open");
 
+  const getVoteCount = (d: { votes?: Array<{ count: number }> }) =>
+    d.votes?.[0]?.count ?? 0;
+
   const votedDisputes = (myVotes ?? [])
     .filter((v) => v.disputes)
     .map((v) => ({
-      dispute: v.disputes as unknown as Record<string, unknown>,
+      dispute: v.disputes as unknown as Record<string, unknown> & {
+        votes?: Array<{ count: number }>;
+      },
       voteSide: v.side as "a" | "b",
     }));
 
@@ -73,6 +78,7 @@ export default async function DashboardPage() {
                 status={d.status}
                 winnerSide={d.winner_side as "a" | "b" | null}
                 expiresAt={d.expires_at}
+                voteCount={getVoteCount(d)}
               />
             ))}
           </div>
@@ -97,6 +103,7 @@ export default async function DashboardPage() {
                 status={d.status}
                 winnerSide={d.winner_side as "a" | "b" | null}
                 expiresAt={d.expires_at}
+                voteCount={getVoteCount(d)}
               />
             ))}
           </div>
@@ -122,6 +129,7 @@ export default async function DashboardPage() {
                 winnerSide={dispute.winner_side as "a" | "b" | null}
                 expiresAt={dispute.expires_at as string}
                 userVoteSide={voteSide}
+                voteCount={getVoteCount(dispute)}
               />
             ))}
           </div>
