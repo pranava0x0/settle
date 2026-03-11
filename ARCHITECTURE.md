@@ -152,9 +152,33 @@ Timer expires → result shown → debate settled
   - `/dashboard` — my disputes + my votes
   - `/login` — phone auth
 
+## Deployment
+
+### Production
+- **Hosting:** Vercel (Hobby plan, free)
+- **URL:** settle.vercel.app (auto-assigned by Vercel)
+- **Repo:** github.com/praparla/settle (auto-deploys on push to main)
+- **Environment Variables (Vercel):**
+  - `NEXT_PUBLIC_SUPABASE_URL` — Supabase project URL (public)
+  - `NEXT_PUBLIC_SUPABASE_ANON_KEY` — Supabase anon key (public, RLS-protected)
+  - Note: `SUPABASE_SERVICE_ROLE_KEY` is NOT set in Vercel — not needed for client-side app
+
+### Deploy Checklist
+1. `pnpm test && pnpm build` — verify locally
+2. `git push origin main` — Vercel auto-deploys
+3. Verify Supabase Auth redirect URLs include production domain
+4. Test OTP login flow on deployed URL
+5. Test dispute creation + sharing + voting end-to-end
+
+### Supabase Auth Configuration
+- Supabase Dashboard → Authentication → URL Configuration
+- **Site URL:** production Vercel URL
+- **Redirect URLs:** must include both localhost (dev) and Vercel URL (prod)
+
 ## Cost Optimization Notes
 - Supabase free tier: 50K monthly active users, 500MB database, 5GB bandwidth
 - Vercel free tier: 100GB bandwidth, serverless functions
+- Twilio Verify: ~$0.05/successful verification (only real cost)
 - No external APIs needed for core functionality
 - No cron jobs in v1 — lazy evaluation for timer expiry
 - No file storage needed in v1 (no avatars, no images)

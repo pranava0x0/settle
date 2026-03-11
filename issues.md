@@ -105,3 +105,20 @@ Living bug and issue tracker. Log bugs as they're found, update when fixed.
 - **Status:** Fixed
 - **Fix:** Removed `revalidatePath` call from `closeDispute()` in `src/lib/actions/disputes.ts`. The lazy close path already re-fetches the dispute after calling `closeDispute`, so revalidation is unnecessary.
 - **Regression Test:** No — manual test confirms dispute settles correctly on page load.
+
+### [ISSUE-011] Vercel "name already used" error on initial deploy
+- **Date:** 2026-03-11
+- **Area:** infra
+- **Description:** Vercel's "New Project" clone flow showed "The specified name is already used for a different Git repository" when trying to deploy. The clone URL was pre-filled, conflicting with the existing `praparla/settle` repo.
+- **Root Cause:** config — navigated to Vercel's clone flow instead of the import flow. The clone flow tries to create a new repo, conflicting with the existing one.
+- **Status:** Fixed
+- **Fix:** Used `vercel.com/new` → "Import Git Repository" flow instead of the clone flow. Selected existing `praparla/settle` repo, added env vars, deployed successfully.
+- **Regression Test:** N/A
+
+### [ISSUE-012] Supabase auth redirect URL not configured for production
+- **Date:** 2026-03-11
+- **Area:** auth
+- **Description:** After deploying to Vercel, OTP login may fail to redirect correctly because Supabase auth is only configured for `localhost:3000`. The production Vercel URL needs to be added to Supabase's allowed redirect URLs.
+- **Root Cause:** config — Supabase Auth URL Configuration only has localhost, not the production domain.
+- **Status:** Open
+- **Fix:** Add Vercel production URL to Supabase Dashboard → Authentication → URL Configuration → Site URL and Redirect URLs.
