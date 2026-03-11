@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { DisputeCard } from "@/components/dispute-card";
+import { DisplayNamePrompt } from "@/components/display-name-prompt";
 import { buttonVariants } from "@/components/ui/button-variants";
 import Link from "next/link";
 import { ROUTES } from "@/lib/constants";
@@ -14,6 +15,15 @@ export default async function DashboardPage() {
   if (!user) {
     redirect(ROUTES.LOGIN);
   }
+
+  // Check if user has set a display name
+  const { data: profile } = await supabase
+    .from("users")
+    .select("display_name")
+    .eq("id", user.id)
+    .single();
+
+  const needsDisplayName = !profile?.display_name;
 
   // Fetch disputes I created, with vote counts
   const { data: myDisputes } = await supabase
@@ -47,6 +57,8 @@ export default async function DashboardPage() {
 
   return (
     <div className="mx-auto max-w-lg px-4 py-8">
+      {needsDisplayName && <DisplayNamePrompt />}
+
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold">Your debates</h1>
         <Link

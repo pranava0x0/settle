@@ -4,6 +4,7 @@ import {
   castVoteSchema,
   phoneSchema,
   otpSchema,
+  displayNameSchema,
 } from "@/lib/validations";
 
 describe("createDisputeSchema", () => {
@@ -164,5 +165,35 @@ describe("otpSchema", () => {
 
   it("rejects alphabetic characters", () => {
     expect(otpSchema.safeParse("abc123").success).toBe(false);
+  });
+});
+
+describe("displayNameSchema", () => {
+  it("accepts a valid display name", () => {
+    const result = displayNameSchema.safeParse("Alice");
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data).toBe("Alice");
+  });
+
+  it("trims whitespace", () => {
+    const result = displayNameSchema.safeParse("  Bob  ");
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data).toBe("Bob");
+  });
+
+  it("rejects empty string", () => {
+    expect(displayNameSchema.safeParse("").success).toBe(false);
+  });
+
+  it("rejects whitespace-only string", () => {
+    expect(displayNameSchema.safeParse("   ").success).toBe(false);
+  });
+
+  it("rejects names over 50 characters", () => {
+    expect(displayNameSchema.safeParse("A".repeat(51)).success).toBe(false);
+  });
+
+  it("accepts names at exactly 50 characters", () => {
+    expect(displayNameSchema.safeParse("A".repeat(50)).success).toBe(true);
   });
 });

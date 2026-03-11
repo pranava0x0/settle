@@ -58,3 +58,10 @@ export const otpSchema = z
   .string()
   .length(6, "OTP must be 6 digits")
   .regex(/^\d{6}$/, "OTP must be 6 digits");
+
+export const displayNameSchema = z
+  .string()
+  .min(1, "Name is required")
+  .max(50, "Name must be under 50 characters")
+  .transform((val) => val.trim())
+  .pipe(z.string().min(1, "Name is required"));

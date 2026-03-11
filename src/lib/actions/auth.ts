@@ -2,7 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { phoneSchema, otpSchema } from "@/lib/validations";
+import { phoneSchema, otpSchema, displayNameSchema } from "@/lib/validations";
 
 export async function sendOtp(phone: string) {
   const parsed = phoneSchema.safeParse(phone);
@@ -55,6 +55,34 @@ export async function verifyOtp(phone: string, token: string) {
   if (error) {
     console.error("verifyOtp error:", error.message);
     return { error: "Invalid code. Please try again." };
+  }
+
+  return { success: true };
+}
+
+export async function updateDisplayName(name: string) {
+  const parsed = displayNameSchema.safeParse(name);
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0].message };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "Not authenticated" };
+  }
+
+  const { error } = await supabase
+    .from("users")
+    .update({ display_name: parsed.data })
+    .eq("id", user.id);
+
+  if (error) {
+    console.error("updateDisplayName error:", error.message);
+    return { error: "Failed to update name. Please try again." };
   }
 
   return { success: true };

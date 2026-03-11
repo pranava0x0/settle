@@ -362,6 +362,59 @@ describe("OTP input handling", () => {
   });
 });
 
+describe("Display name validation", () => {
+  const validateDisplayName = (name: string) => {
+    const trimmed = name.trim();
+    if (trimmed.length === 0) return { error: "Name is required" };
+    if (trimmed.length > 50) return { error: "Name must be under 50 characters" };
+    return { success: true, value: trimmed };
+  };
+
+  it("accepts valid display names", () => {
+    expect(validateDisplayName("Alice")).toEqual({ success: true, value: "Alice" });
+    expect(validateDisplayName("Bob Smith")).toEqual({ success: true, value: "Bob Smith" });
+  });
+
+  it("trims whitespace from display names", () => {
+    expect(validateDisplayName("  Alice  ")).toEqual({ success: true, value: "Alice" });
+  });
+
+  it("rejects empty or whitespace-only names", () => {
+    expect(validateDisplayName("")).toEqual({ error: "Name is required" });
+    expect(validateDisplayName("   ")).toEqual({ error: "Name is required" });
+  });
+
+  it("rejects names over 50 characters", () => {
+    const longName = "A".repeat(51);
+    expect(validateDisplayName(longName)).toEqual({ error: "Name must be under 50 characters" });
+  });
+
+  it("accepts names at exactly 50 characters", () => {
+    const name = "A".repeat(50);
+    expect(validateDisplayName(name)).toEqual({ success: true, value: name });
+  });
+});
+
+describe("Display name prompt visibility", () => {
+  it("shows prompt when display_name is null", () => {
+    const profile = { display_name: null };
+    const needsDisplayName = !profile.display_name;
+    expect(needsDisplayName).toBe(true);
+  });
+
+  it("hides prompt when display_name is set", () => {
+    const profile = { display_name: "Alice" };
+    const needsDisplayName = !profile.display_name;
+    expect(needsDisplayName).toBe(false);
+  });
+
+  it("shows prompt when profile query returns no data", () => {
+    const profile = null;
+    const needsDisplayName = !profile?.display_name;
+    expect(needsDisplayName).toBe(true);
+  });
+});
+
 describe("Dispute-first onboarding", () => {
   it("detects vote redirect from dispute page", () => {
     const isVoteRedirect = (redirectTo: string) => redirectTo.startsWith("/s/");
