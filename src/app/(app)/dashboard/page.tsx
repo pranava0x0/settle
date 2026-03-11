@@ -43,22 +43,22 @@ export default async function DashboardPage() {
   return (
     <div className="mx-auto max-w-lg px-4 py-8">
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Dashboard</h1>
+        <h1 className="text-2xl font-bold">Your debates</h1>
         <Link
           href={ROUTES.CREATE}
           className={buttonVariants({ size: "sm" })}
         >
-          New Dispute
+          New one
         </Link>
       </div>
 
       <section className="mb-8">
-        <h2 className="mb-3 text-lg font-semibold">Active Disputes</h2>
+        <h2 className="mb-3 text-lg font-semibold">Live now</h2>
         {activeDisputes.length === 0 ? (
           <p className="text-muted-foreground text-sm">
-            No active disputes.{" "}
+            Nothing live right now.{" "}
             <Link href={ROUTES.CREATE} className="underline">
-              Create one
+              Start one
             </Link>
           </p>
         ) : (
@@ -83,7 +83,7 @@ export default async function DashboardPage() {
         <h2 className="mb-3 text-lg font-semibold">Settled</h2>
         {settledDisputes.length === 0 ? (
           <p className="text-muted-foreground text-sm">
-            No settled disputes yet.
+            No results yet. The people haven&apos;t spoken.
           </p>
         ) : (
           <div className="space-y-3">
@@ -104,10 +104,10 @@ export default async function DashboardPage() {
       </section>
 
       <section>
-        <h2 className="mb-3 text-lg font-semibold">Voted On</h2>
+        <h2 className="mb-3 text-lg font-semibold">You voted on</h2>
         {votedDisputes.length === 0 ? (
           <p className="text-muted-foreground text-sm">
-            You haven&apos;t voted on any disputes yet.
+            You haven&apos;t weighed in on anything yet.
           </p>
         ) : (
           <div className="space-y-3">

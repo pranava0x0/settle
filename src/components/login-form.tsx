@@ -66,15 +66,15 @@ export const LoginForm = () => {
           <CardTitle className="text-2xl font-bold">{APP_NAME}</CardTitle>
           <CardDescription>
             {step === "phone"
-              ? "Enter your phone number to get started"
-              : "Enter the 6-digit code we sent you"}
+              ? "Drop your number to jump in"
+              : "Enter the 6-digit code we just texted you"}
           </CardDescription>
         </CardHeader>
         <CardContent>
           {step === "phone" ? (
             <form onSubmit={handleSendOtp} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number</Label>
+                <Label htmlFor="phone">Phone number</Label>
                 <Input
                   id="phone"
                   type="tel"
@@ -87,13 +87,13 @@ export const LoginForm = () => {
               </div>
               {error && <p className="text-sm text-red-500">{error}</p>}
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Sending..." : "Send Code"}
+                {loading ? "Sending..." : "Send me a code"}
               </Button>
             </form>
           ) : (
             <form onSubmit={handleVerifyOtp} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="otp">Verification Code</Label>
+                <Label htmlFor="otp">Your code</Label>
                 <Input
                   id="otp"
                   type="text"
@@ -108,7 +108,7 @@ export const LoginForm = () => {
               </div>
               {error && <p className="text-sm text-red-500">{error}</p>}
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Verifying..." : "Verify"}
+                {loading ? "Checking..." : "Let me in"}
               </Button>
               <Button
                 type="button"

@@ -1,29 +1,31 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { useCountdown } from "@/hooks/use-countdown";
 import { cn } from "@/lib/utils";
 
 type CountdownTimerProps = {
   expiresAt: string;
-  onExpire?: () => void;
 };
 
-export const CountdownTimer = ({ expiresAt, onExpire }: CountdownTimerProps) => {
+export const CountdownTimer = ({ expiresAt }: CountdownTimerProps) => {
+  const router = useRouter();
   const { isExpired, formatted, minutes } = useCountdown(expiresAt);
   const expireCalled = useRef(false);
 
   useEffect(() => {
-    if (isExpired && onExpire && !expireCalled.current) {
+    if (isExpired && !expireCalled.current) {
       expireCalled.current = true;
-      onExpire();
+      // Auto-refresh to trigger lazy close and show results
+      router.refresh();
     }
-  }, [isExpired, onExpire]);
+  }, [isExpired, router]);
 
   if (isExpired) {
     return (
       <div className="text-muted-foreground text-sm font-medium">
-        Voting closed
+        Time&apos;s up!
       </div>
     );
   }
@@ -37,7 +39,7 @@ export const CountdownTimer = ({ expiresAt, onExpire }: CountdownTimerProps) => 
         isUrgent ? "text-red-500 animate-pulse" : "text-muted-foreground",
       )}
     >
-      {formatted} remaining
+      {formatted} left
     </div>
   );
 };

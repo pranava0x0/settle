@@ -5,9 +5,10 @@ import { Button } from "@/components/ui/button";
 
 type ShareButtonProps = {
   slug: string;
+  question?: string;
 };
 
-export const ShareButton = ({ slug }: ShareButtonProps) => {
+export const ShareButton = ({ slug, question }: ShareButtonProps) => {
   const [copied, setCopied] = useState(false);
   const url = typeof window !== "undefined"
     ? `${window.location.origin}/s/${slug}`
@@ -17,7 +18,8 @@ export const ShareButton = ({ slug }: ShareButtonProps) => {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: "Settle this debate!",
+          title: "Settle this!",
+          text: question ? `${question} — vote now:` : "Help settle this debate:",
           url,
         });
         return;
@@ -37,7 +39,7 @@ export const ShareButton = ({ slug }: ShareButtonProps) => {
       className="w-full"
       onClick={handleShare}
     >
-      {copied ? "Link copied!" : "Share with friends"}
+      {copied ? "Link copied!" : "Text it to the group"}
     </Button>
   );
 };

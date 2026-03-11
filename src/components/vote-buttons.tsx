@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { castVote } from "@/lib/actions/votes";
 import { useRouter } from "next/navigation";
@@ -42,6 +43,8 @@ export const VoteButtons = ({
 
     if (result.error) {
       setError(result.error);
+    } else {
+      router.refresh();
     }
   };
 
@@ -52,7 +55,7 @@ export const VoteButtons = ({
   if (userVote) {
     return (
       <p className="text-muted-foreground text-center text-sm">
-        You voted for{" "}
+        You&apos;re with{" "}
         <span className="font-semibold">
           {userVote === "a" ? sideA : sideB}
         </span>
@@ -82,7 +85,12 @@ export const VoteButtons = ({
       </div>
       {!isLoggedIn && (
         <p className="text-muted-foreground text-center text-xs">
-          You&apos;ll need to log in to vote
+          <Link
+            href={`/login?redirect=/s/${slug}`}
+            className="underline hover:text-foreground"
+          >
+            Log in to cast your vote
+          </Link>
         </p>
       )}
       {error && <p className="text-center text-sm text-red-500">{error}</p>}

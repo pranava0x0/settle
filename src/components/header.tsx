@@ -23,7 +23,7 @@ export const Header = async () => {
                 href={ROUTES.DASHBOARD}
                 className={buttonVariants({ variant: "ghost", size: "sm" })}
               >
-                Dashboard
+                My debates
               </Link>
               <SignOutButton />
             </>

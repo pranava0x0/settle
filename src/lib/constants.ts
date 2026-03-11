@@ -1,6 +1,6 @@
 export const APP_NAME = "Settle";
 export const APP_DESCRIPTION =
-  "Settle debates with your friends. Create a question, share the link, and let them vote.";
+  "Got a hot take? Settle it with your friends. Drop a question, send the link, and let the votes do the talking.";
 
 export const DISPUTE_STATUS = {
   OPEN: "open",

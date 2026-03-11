@@ -36,10 +36,10 @@ export const DisputeCard = ({
   const statusLabel = settled
     ? winnerSide
       ? "Settled"
-      : "No Winner"
+      : "It's a tie"
     : expired
-      ? "Expired"
-      : "Voting Open";
+      ? "Time's up"
+      : "Votes are in";
 
   const statusVariant = settled || expired ? "secondary" : "default";
 
@@ -62,12 +62,12 @@ export const DisputeCard = ({
           </div>
           {winnerSide && (
             <p className="mt-1 text-sm font-medium">
-              Winner: {winnerSide === "a" ? sideA : sideB}
+              {winnerSide === "a" ? sideA : sideB} wins
             </p>
           )}
           {userVoteSide && (
             <p className="text-muted-foreground mt-1 text-xs">
-              You voted: {userVoteSide === "a" ? sideA : sideB}
+              You were with {userVoteSide === "a" ? sideA : sideB}
             </p>
           )}
         </CardContent>

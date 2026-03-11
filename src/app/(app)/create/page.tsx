@@ -46,15 +46,15 @@ const CreateDisputePage = () => {
     <div className="mx-auto max-w-lg px-4 py-8">
       <Card>
         <CardHeader>
-          <CardTitle className="text-xl">Create a Dispute</CardTitle>
+          <CardTitle className="text-xl">What do you want to settle?</CardTitle>
           <CardDescription>
-            Ask a question, set two sides, and let your friends settle it.
+            Drop the question, pick the sides, and let the people decide.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="question">The Question</Label>
+              <Label htmlFor="question">The hot take</Label>
               <Input
                 id="question"
                 name="question"
@@ -65,9 +65,9 @@ const CreateDisputePage = () => {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="side_a">Side A</Label>
+                <Label htmlFor="side_a">This side says...</Label>
                 <Input
                   id="side_a"
                   name="side_a"
@@ -77,7 +77,7 @@ const CreateDisputePage = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="side_b">Side B</Label>
+                <Label htmlFor="side_b">The other side says...</Label>
                 <Input
                   id="side_b"
                   name="side_b"
@@ -89,7 +89,7 @@ const CreateDisputePage = () => {
             </div>
 
             <div className="space-y-2">
-              <Label>Voting Timer</Label>
+              <Label>How long do they have?</Label>
               <div className="grid grid-cols-2 gap-2">
                 {TIMER_PRESETS.map((preset) => (
                   <Button
@@ -110,7 +110,7 @@ const CreateDisputePage = () => {
             {error && <p className="text-sm text-red-500">{error}</p>}
 
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Creating..." : "Create & Share"}
+              {loading ? "Firing it up..." : "Let's settle this"}
             </Button>
           </form>
         </CardContent>

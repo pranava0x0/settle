@@ -141,6 +141,15 @@ Living bug and issue tracker. Log bugs as they're found, update when fixed.
 - **Fix:** Moved `onExpire` call into a `useEffect` with a `useRef` guard to ensure it fires exactly once when the timer expires.
 - **Regression Test:** No — prop is currently unused but now safe to use.
 
+### [ISSUE-016] Vote count doesn't update in real-time for other viewers
+- **Date:** 2026-03-11
+- **Area:** voting
+- **Description:** When someone votes on a dispute, other users viewing the same page don't see the count go up. The voter themselves also sees stale counts after voting. Two root causes: (1) `VoteButtons` didn't call `router.refresh()` after a successful vote, so the voter saw stale server-rendered data. (2) No Supabase Realtime subscription — other viewers had no mechanism to learn about new votes.
+- **Root Cause:** code bug — missing `router.refresh()` after vote + no realtime listener.
+- **Status:** Fixed
+- **Fix:** Added `router.refresh()` in `VoteButtons` on success. Created `RealtimeVoteListener` component that subscribes to Supabase Realtime INSERT events on the `votes` table (filtered by dispute_id) and triggers `router.refresh()`. Component is mounted only while voting is open.
+- **Regression Test:** No — requires Supabase Realtime enabled on `votes` table.
+
 ### [ISSUE-015] DisputeCard shows "Tie" for disputes with zero votes
 - **Date:** 2026-03-11
 - **Area:** ui
@@ -148,4 +157,31 @@ Living bug and issue tracker. Log bugs as they're found, update when fixed.
 - **Root Cause:** code bug — `statusLabel` logic treated all non-winner closed disputes as ties.
 - **Status:** Fixed
 - **Fix:** Changed label from "Tie" to "No Winner" which is accurate for both tie and zero-vote cases.
+- **Regression Test:** No
+
+### [ISSUE-017] Timer expiry doesn't auto-refresh to show results
+- **Date:** 2026-03-11
+- **Area:** timer
+- **Description:** When the countdown timer hits 0 on the dispute page, the page doesn't transition to the results view. Users have to manually refresh. The `CountdownTimer` had an unused `onExpire` prop that couldn't be wired from a server component.
+- **Root Cause:** code bug — server components can't pass callbacks to client components. The `onExpire` callback was never connected.
+- **Status:** Fixed
+- **Fix:** Removed `onExpire` prop. `CountdownTimer` now calls `router.refresh()` internally via `useEffect` when the timer expires, triggering lazy close on the server.
+- **Regression Test:** No
+
+### [ISSUE-018] Create form Side A/B inputs don't stack on mobile
+- **Date:** 2026-03-11
+- **Area:** ui
+- **Description:** On mobile viewports, the Side A and Side B input fields are crammed side-by-side in a 2-column grid. The inputs are too narrow to type in comfortably on phones.
+- **Root Cause:** design flaw — `grid-cols-2` was unconditional with no responsive breakpoint.
+- **Status:** Fixed
+- **Fix:** Changed to `grid-cols-1 sm:grid-cols-2` so inputs stack vertically on mobile and go side-by-side on larger screens.
+- **Regression Test:** No
+
+### [ISSUE-019] Copy is generic and lacks personality
+- **Date:** 2026-03-11
+- **Area:** ui
+- **Description:** All UI text used bland, formal language ("Create a Dispute", "Side A", "Voting Timer", "Active Disputes", etc.). The app is meant to feel fun and social — like texting friends — not like a business app.
+- **Root Cause:** design flaw — copy was written functionally without personality.
+- **Status:** Fixed
+- **Fix:** Rewrote all user-facing copy across 11 files: landing page, create page, dashboard, dispute page, vote buttons, dispute card, dispute results, share button, countdown timer, login form, header, voter breakdown. Examples: "Create a Dispute" → "What do you want to settle?", "Side A" → "This side says...", "Winner: Pizza" → "Pizza wins — 7 to 3", "Share with friends" → "Text it to the group".
 - **Regression Test:** No

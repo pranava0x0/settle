@@ -26,17 +26,17 @@ export const DisputeResults = ({
     <div className="space-y-4">
       {status === "expired" && totalVotes === 0 && (
         <p className="text-muted-foreground text-center text-sm">
-          No votes were cast
+          Nobody voted. Awkward.
         </p>
       )}
       {status === "expired" && totalVotes > 0 && voteCountA === voteCountB && (
         <Badge variant="secondary" className="mx-auto block w-fit">
-          Tie — No winner
+          Dead even. No winner this time.
         </Badge>
       )}
       {winnerSide && (
         <Badge className="mx-auto block w-fit">
-          Winner: {winnerSide === "a" ? sideA : sideB}
+          {winnerSide === "a" ? sideA : sideB} wins &mdash; {voteCountA > voteCountB ? voteCountA : voteCountB} to {voteCountA > voteCountB ? voteCountB : voteCountA}
         </Badge>
       )}
 
@@ -83,7 +83,7 @@ export const DisputeResults = ({
       </div>
 
       <p className="text-muted-foreground text-center text-xs">
-        {totalVotes} total {totalVotes === 1 ? "vote" : "votes"}
+        {totalVotes} {totalVotes === 1 ? "person voted" : "people voted"}
       </p>
     </div>
   );

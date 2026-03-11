@@ -13,6 +13,8 @@ import { CountdownTimer } from "@/components/countdown-timer";
 import { VoteButtons } from "@/components/vote-buttons";
 import { DisputeResults } from "@/components/dispute-results";
 import { ShareButton } from "@/components/share-button";
+import { RealtimeVoteListener } from "@/components/realtime-vote-listener";
+import { VoterBreakdown } from "@/components/voter-breakdown";
 
 type PageProps = {
   params: Promise<{ slug: string }>;
@@ -78,6 +80,28 @@ export default async function DisputePage({ params }: PageProps) {
     }
   }
 
+  // Fetch voter breakdown for creator only
+  const isCreator = user?.id === dispute.creator_id;
+  let voters: { side: "a" | "b"; display_name: string | null; voted_at: string }[] = [];
+  if (isCreator) {
+    const { data: voteRows } = await supabase
+      .from("votes")
+      .select("side, created_at, users(display_name)")
+      .eq("dispute_id", dispute.id)
+      .order("created_at", { ascending: true });
+
+    if (voteRows) {
+      voters = voteRows.map((v) => {
+        const userRecord = v.users as unknown as { display_name: string | null } | null;
+        return {
+          side: v.side as "a" | "b",
+          display_name: userRecord?.display_name ?? null,
+          voted_at: v.created_at,
+        };
+      });
+    }
+  }
+
   const expired = isExpired(dispute.expires_at);
   const isClosed = dispute.status !== "open";
   const showResults = isClosed || expired;
@@ -94,10 +118,10 @@ export default async function DisputePage({ params }: PageProps) {
               }
             >
               {dispute.status === "open"
-                ? "Voting Open"
+                ? "Votes are in"
                 : dispute.status === "closed"
                   ? "Settled"
-                  : "Expired"}
+                  : "Time's up"}
             </Badge>
             {!isClosed && !expired && (
               <CountdownTimer expiresAt={dispute.expires_at} />
@@ -119,7 +143,7 @@ export default async function DisputePage({ params }: PageProps) {
             <>
               {totalVotes > 0 && (
                 <p className="text-muted-foreground text-center text-sm">
-                  {totalVotes} {totalVotes === 1 ? "vote" : "votes"} so far
+                  {totalVotes} {totalVotes === 1 ? "person has" : "people have"} voted
                 </p>
               )}
               <VoteButtons
@@ -134,7 +158,19 @@ export default async function DisputePage({ params }: PageProps) {
             </>
           )}
 
-          <ShareButton slug={slug} />
+          <ShareButton slug={slug} question={dispute.question} />
+
+          {isCreator && voters.length > 0 && (
+            <VoterBreakdown
+              voters={voters}
+              sideA={dispute.side_a}
+              sideB={dispute.side_b}
+            />
+          )}
+
+          {!isClosed && !expired && (
+            <RealtimeVoteListener disputeId={dispute.id} />
+          )}
         </CardContent>
       </Card>
     </div>
