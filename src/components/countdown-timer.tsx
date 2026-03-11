@@ -11,13 +11,12 @@ type CountdownTimerProps = {
 
 export const CountdownTimer = ({ expiresAt }: CountdownTimerProps) => {
   const router = useRouter();
-  const { isExpired, formatted, minutes } = useCountdown(expiresAt);
+  const { isExpired, formatted, timeRemaining } = useCountdown(expiresAt);
   const expireCalled = useRef(false);
 
   useEffect(() => {
     if (isExpired && !expireCalled.current) {
       expireCalled.current = true;
-      // Auto-refresh to trigger lazy close and show results
       router.refresh();
     }
   }, [isExpired, router]);
@@ -25,21 +24,28 @@ export const CountdownTimer = ({ expiresAt }: CountdownTimerProps) => {
   if (isExpired) {
     return (
       <div className="text-muted-foreground text-sm font-medium">
-        Time&apos;s up!
+        Closed
       </div>
     );
   }
 
-  const isUrgent = minutes < 5;
+  const totalMinutes = timeRemaining / (1000 * 60);
+  const isUrgent = totalMinutes < 5;
+  const isWarning = totalMinutes < 25 && totalMinutes >= 5;
 
   return (
     <div
       className={cn(
         "text-sm font-mono font-medium",
-        isUrgent ? "text-red-500 animate-pulse" : "text-muted-foreground",
+        isUrgent
+          ? "text-red-500 animate-pulse"
+          : isWarning
+            ? "text-yellow-500"
+            : "text-muted-foreground",
       )}
     >
-      {formatted} left
+      {isUrgent && "Closing soon \u00B7 "}
+      Closes in {formatted}
     </div>
   );
 };
