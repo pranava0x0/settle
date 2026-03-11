@@ -155,7 +155,7 @@ export default async function DisputePage({ params }: PageProps) {
               {dispute.status === "open"
                 ? "Live"
                 : dispute.status === "closed"
-                  ? "Settled"
+                  ? "Decided"
                   : "Closed"}
             </Badge>
             {!isClosed && !expired && (

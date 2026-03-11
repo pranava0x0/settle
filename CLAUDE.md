@@ -1,6 +1,6 @@
-# Settle
+# Squabble
 
-Settle is a lightweight, web-first PWA for settling debates between friends. You create a question with two sides, text the link to your friend group, they vote within a time limit, and the majority settles it.
+Squabble is a lightweight, web-first PWA for settling debates between friends. You create a question with two sides, text the link to your friend group, they vote within a time limit, and the majority settles it.
 
 ## Agent Workflow: Explore → Plan → Code → Verify
 

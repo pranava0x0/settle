@@ -46,7 +46,7 @@ const CreateDisputePage = () => {
     <div className="mx-auto max-w-lg px-4 py-8">
       <Card>
         <CardHeader>
-          <CardTitle className="text-xl">What do you want to settle?</CardTitle>
+          <CardTitle className="text-xl">What&apos;s the squabble?</CardTitle>
           <CardDescription>
             Drop the question, pick the sides, and let the people decide.
           </CardDescription>
@@ -110,7 +110,7 @@ const CreateDisputePage = () => {
             {error && <p className="text-sm text-red-500">{error}</p>}
 
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Firing it up..." : "Let's settle this"}
+              {loading ? "Firing it up..." : "Let\u0027s squabble"}
             </Button>
           </form>
         </CardContent>

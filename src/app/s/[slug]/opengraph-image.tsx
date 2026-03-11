@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 import { createClient } from "@/lib/supabase/server";
 
-export const alt = "Settle — vote now";
+export const alt = "Squabble — vote now";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -88,7 +88,7 @@ export default async function OGImage({
               letterSpacing: "-0.02em",
             }}
           >
-            Settle
+            Squabble
           </div>
           <div
             style={{
@@ -100,7 +100,7 @@ export default async function OGImage({
               fontWeight: 600,
             }}
           >
-            {isSettled ? "Settled" : "Live"}
+            {isSettled ? "Decided" : "Live"}
           </div>
         </div>
 

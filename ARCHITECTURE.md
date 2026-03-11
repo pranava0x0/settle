@@ -1,10 +1,10 @@
-# Settle - Architecture Plan
+# Squabble - Architecture Plan
 
 ## Overview
-Settle is a lightweight, web-first PWA for settling debates between friends. You create a question with two sides, text the link to your friend group, they vote within a time limit, and the majority settles the debate.
+Squabble is a lightweight, web-first PWA for settling debates between friends. You create a question with two sides, text the link to your friend group, they vote within a time limit, and the majority settles the debate.
 
 ## Core Concept
-Two friends disagree about something lowkey. Instead of arguing, they open Settle, create the question, and text it to mutual friends. Friends vote. Timer runs out. Majority wins. Debate settled.
+Two friends disagree about something lowkey. Instead of arguing, they open Squabble, create the question, and text it to mutual friends. Friends vote. Timer runs out. Majority wins. Debate settled.
 
 ## Stack (Cost-Optimized)
 | Layer | Choice | Cost |

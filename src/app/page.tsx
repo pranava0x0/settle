@@ -55,7 +55,7 @@ export default async function Home() {
         <div className="rounded-lg border p-4">
           <h3 className="mb-1 font-semibold">3. Let the votes do the talking</h3>
           <p className="text-muted-foreground text-sm">
-            When time&apos;s up, the majority wins. Settled.
+            When time&apos;s up, the majority wins. Done.
           </p>
         </div>
       </div>

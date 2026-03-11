@@ -1,7 +1,7 @@
 {
-  "name": "Settle",
-  "short_name": "Settle",
-  "description": "Settle debates with your friends",
+  "name": "Squabble",
+  "short_name": "Squabble",
+  "description": "Squabble it out with your friends",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

@@ -1,4 +1,4 @@
-# Backlog — Settle
+# Backlog — Squabble
 
 Ideas, features, and enhancements. Add immediately when they come up during development.
 Prioritized by impact on viral growth, share flow, and core UX delight.

@@ -1,7 +1,7 @@
-# Settle - Project Plan
+# Squabble - Project Plan
 
 ## Premise
-Two friends are debating something lowkey and can't agree. They open Settle, create the question with two sides, and text the link to mutual friends. Friends vote within a time limit. Timer expires, majority wins, debate settled.
+Two friends are debating something lowkey and can't agree. They open Squabble, create the question with two sides, and text the link to mutual friends. Friends vote within a time limit. Timer expires, majority wins, debate settled.
 
 ## Platform Strategy
 - **v1:** Mobile-friendly web app (PWA) — works in any browser, no app store needed

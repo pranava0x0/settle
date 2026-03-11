@@ -1,4 +1,4 @@
-# Issues — Settle
+# Issues — Squabble
 
 Living bug and issue tracker. Log bugs as they're found, update when fixed.
 

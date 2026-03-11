@@ -2,12 +2,12 @@ import { describe, it, expect } from "vitest";
 import { APP_NAME, APP_DESCRIPTION } from "@/lib/constants";
 
 describe("App copy", () => {
-  it("APP_NAME is Settle", () => {
-    expect(APP_NAME).toBe("Settle");
+  it("APP_NAME is Squabble", () => {
+    expect(APP_NAME).toBe("Squabble");
   });
 
   it("APP_DESCRIPTION uses playful copy", () => {
-    expect(APP_DESCRIPTION).toContain("question to settle");
+    expect(APP_DESCRIPTION).toContain("squabble");
     expect(APP_DESCRIPTION).toContain("votes do the talking");
   });
 });
@@ -16,7 +16,7 @@ describe("OG metadata for dispute pages", () => {
   it("generates correct title with question and app name", () => {
     const question = "Is a hot dog a sandwich?";
     const title = `${question} | ${APP_NAME}`;
-    expect(title).toBe("Is a hot dog a sandwich? | Settle");
+    expect(title).toBe("Is a hot dog a sandwich? | Squabble");
   });
 
   it("generates description with sides", () => {
@@ -30,7 +30,7 @@ describe("OG metadata for dispute pages", () => {
     const question = "Should we order pizza or tacos for the Super Bowl party this weekend";
     const title = `${question} | ${APP_NAME}`;
     expect(title).toContain("pizza or tacos");
-    expect(title.endsWith("| Settle")).toBe(true);
+    expect(title.endsWith("| Squabble")).toBe(true);
   });
 });
 
@@ -51,14 +51,14 @@ describe("OG image vote tally display", () => {
 
   it("shows Live badge when dispute is open", () => {
     const status = "open";
-    const label = status !== "open" ? "Settled" : "Live";
+    const label = status !== "open" ? "Decided" : "Live";
     expect(label).toBe("Live");
   });
 
-  it("shows Settled badge when dispute is closed", () => {
+  it("shows Decided badge when dispute is closed", () => {
     const status = "closed";
-    const label = status !== "open" ? "Settled" : "Live";
-    expect(label).toBe("Settled");
+    const label = status !== "open" ? "Decided" : "Live";
+    expect(label).toBe("Decided");
   });
 });
 
@@ -137,13 +137,13 @@ describe("DisputeCard status labels", () => {
     const settled = status !== "open";
     return settled
       ? winnerSide
-        ? "Settled"
+        ? "Decided"
         : "No winner"
       : "Live";
   };
 
-  it("shows 'Settled' when dispute has a winner", () => {
-    expect(getStatusLabel("closed", "a")).toBe("Settled");
+  it("shows 'Decided' when dispute has a winner", () => {
+    expect(getStatusLabel("closed", "a")).toBe("Decided");
   });
 
   it("shows 'No winner' when no winner", () => {
@@ -159,26 +159,26 @@ describe("ShareButton SMS deep link", () => {
   // Import the pure function for testing
   const buildSmsBody = (question: string | undefined, url: string) => {
     return question
-      ? `Settle this: ${question} — vote here: ${url}`
-      : `Help settle this — vote here: ${url}`;
+      ? `New squabble: ${question} — vote here: ${url}`
+      : `Weigh in on this — vote here: ${url}`;
   };
 
   it("generates SMS body with question when provided", () => {
-    const body = buildSmsBody("Is a hot dog a sandwich?", "https://settle.app/s/abc123");
-    expect(body).toBe("Settle this: Is a hot dog a sandwich? — vote here: https://settle.app/s/abc123");
+    const body = buildSmsBody("Is a hot dog a sandwich?", "https://squabble.app/s/abc123");
+    expect(body).toBe("New squabble: Is a hot dog a sandwich? — vote here: https://squabble.app/s/abc123");
   });
 
   it("uses fallback SMS body when no question", () => {
-    const body = buildSmsBody(undefined, "https://settle.app/s/abc123");
-    expect(body).toBe("Help settle this — vote here: https://settle.app/s/abc123");
+    const body = buildSmsBody(undefined, "https://squabble.app/s/abc123");
+    expect(body).toBe("Weigh in on this — vote here: https://squabble.app/s/abc123");
   });
 
   it("generates correct sms: URI with encoded body", () => {
-    const body = buildSmsBody("Pizza vs Tacos?", "https://settle.app/s/xyz");
+    const body = buildSmsBody("Pizza vs Tacos?", "https://squabble.app/s/xyz");
     const href = `sms:?&body=${encodeURIComponent(body)}`;
     expect(href).toContain("sms:?&body=");
     expect(href).toContain(encodeURIComponent("Pizza vs Tacos?"));
-    expect(href).toContain(encodeURIComponent("https://settle.app/s/xyz"));
+    expect(href).toContain(encodeURIComponent("https://squabble.app/s/xyz"));
   });
 });
 

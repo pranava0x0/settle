@@ -65,7 +65,7 @@ export default async function DashboardPage() {
           href={ROUTES.CREATE}
           className={buttonVariants({ size: "sm" })}
         >
-          New one
+          Squabble
         </Link>
       </div>
 
@@ -98,7 +98,7 @@ export default async function DashboardPage() {
       </section>
 
       <section className="mb-8">
-        <h2 className="mb-3 text-lg font-semibold">Settled</h2>
+        <h2 className="mb-3 text-lg font-semibold">Decided</h2>
         {settledDisputes.length === 0 ? (
           <p className="text-muted-foreground text-sm">
             No results yet. The people haven&apos;t spoken.

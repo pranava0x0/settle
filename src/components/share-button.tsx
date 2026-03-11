@@ -14,8 +14,8 @@ type ShareButtonProps = {
  */
 export function buildSmsHref(question: string | undefined, url: string): string {
   const body = question
-    ? `Settle this: ${question} — vote here: ${url}`
-    : `Help settle this — vote here: ${url}`;
+    ? `New squabble: ${question} — vote here: ${url}`
+    : `Weigh in on this — vote here: ${url}`;
   return `sms:?&body=${encodeURIComponent(body)}`;
 }
 

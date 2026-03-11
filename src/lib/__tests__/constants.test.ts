@@ -103,7 +103,7 @@ describe("PUBLIC_ROUTES", () => {
 });
 
 describe("APP_NAME", () => {
-  it("is Settle", () => {
-    expect(APP_NAME).toBe("Settle");
+  it("is Squabble", () => {
+    expect(APP_NAME).toBe("Squabble");
   });
 });
