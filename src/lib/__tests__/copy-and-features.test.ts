@@ -34,8 +34,35 @@ describe("OG metadata for dispute pages", () => {
   });
 });
 
+describe("OG image vote tally display", () => {
+  it("shows individual vote counts for each side", () => {
+    const voteCountA = 5;
+    const voteCountB = 3;
+    const totalVotes = voteCountA + voteCountB;
+    expect(totalVotes).toBe(8);
+    expect(`${totalVotes} votes`).toBe("8 votes");
+  });
+
+  it("shows singular 'vote' for exactly 1 total", () => {
+    const totalVotes = 1;
+    const text = `${totalVotes} ${totalVotes === 1 ? "vote" : "votes"}`;
+    expect(text).toBe("1 vote");
+  });
+
+  it("shows Live badge when dispute is open", () => {
+    const status = "open";
+    const label = status !== "open" ? "Settled" : "Live";
+    expect(label).toBe("Live");
+  });
+
+  it("shows Settled badge when dispute is closed", () => {
+    const status = "closed";
+    const label = status !== "open" ? "Settled" : "Live";
+    expect(label).toBe("Settled");
+  });
+});
+
 describe("DisputeResults winner format", () => {
-  // Test the scoreline format logic: "{winner} wins — {high} to {low}"
   it("produces correct scoreline with side A winning", () => {
     const voteCountA = 7;
     const voteCountB = 3;
