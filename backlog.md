@@ -20,49 +20,49 @@ Prioritized by impact on viral growth, share flow, and core UX delight.
 - **Date Added:** 2026-03-11
 - **Priority:** high
 - **Description:** When a non-auth user clicks a shared link, show the full dispute — question, sides, vote counts, timer — before asking them to log in. Only when they tap a vote button do you hit them with "Enter your number to vote." This is the Partiful pattern exactly: content creates pull, login is the last step not the first. Eliminates the single biggest drop-off in the share flow.
-- **Status:** backlog
+- **Status:** done
 
 ### Dynamic iMessage link preview with live vote count
 - **Date Added:** 2026-03-11
 - **Priority:** high
 - **Description:** OG image for dispute links should be server-rendered dynamically — show both sides, the live vote tally, and countdown right in the iMessage card. Use Next.js `ImageResponse` (OG image route) baking in real-time vote state at request time. Someone forwarding the link 2 hours later sees different numbers than the first recipient. Every share is its own live ad.
-- **Status:** backlog
+- **Status:** done
 
 ### iMessage link previews (Open Graph)
 - **Date Added:** 2026-03-11
 - **Priority:** high
 - **Description:** Proper Open Graph meta tags on `/s/[slug]` so sharing via iMessage/text shows a rich preview with the question and sides. Currently shows a bare URL. Critical for the share-via-text flow. Foundation required before the dynamic version above.
-- **Status:** backlog
+- **Status:** done
 
 ### One-tap "Text the link" share button
 - **Date Added:** 2026-03-11
 - **Priority:** high
 - **Description:** Primary CTA on dispute page is "Text the link" — not a generic share button. Tap it, copies URL and opens `sms:&body=Settle this: [question] — vote here: [url]` with the question pre-filled. Recipient's iMessage shows the dispute question before they even open the link. Locket Widget pattern — recipient just hits Send.
-- **Status:** backlog
+- **Status:** done
 
 ### "I'm with [Side]" vote button copy
 - **Date Added:** 2026-03-11
 - **Priority:** high
 - **Description:** Change vote button labels from "[Side A]" to "I'm with [Side A]". Makes the vote feel like a personal declaration, an alignment. After voting: "You're with [Side A]. [N] others agree." Tiny copy change, big personality shift. Zero engineering cost.
-- **Status:** backlog
+- **Status:** done
 
 ### Winner announcement copy: scoreline format
 - **Date Added:** 2026-03-11
 - **Priority:** high
 - **Description:** Winner copy should read like a sports result — "Pizza wins — 7 to 3." not "Side A wins the dispute." Across the app: replace "expires" with "closes" ("Closes in 4 hours" sounds consequential; "expires" sounds like yogurt). Under 5 minutes: "Closes in MM:SS" with seconds ticking.
-- **Status:** backlog
+- **Status:** done
 
 ### Phone OTP: auto-read + instant submit
 - **Date Added:** 2026-03-11
 - **Priority:** high
 - **Description:** Phone input auto-detects country code from device locale, shows flag. OTP field uses `autocomplete="one-time-code"` so iOS auto-reads it from SMS. Submit triggers automatically once 6 digits fill — no "Continue" button tap. Goal: tapping "Vote" → casting a vote in under 20 seconds.
-- **Status:** backlog
+- **Status:** done
 
 ### Display names / profiles
 - **Date Added:** 2026-03-11
 - **Priority:** high
 - **Description:** After first login, prompt users to set a display name. Show names on votes and dispute cards instead of anonymous "1 vote". Makes the social experience feel personal — friends want to see who voted for what.
-- **Status:** backlog
+- **Status:** done
 
 ---
 
@@ -78,7 +78,7 @@ Prioritized by impact on viral growth, share flow, and core UX delight.
 - **Date Added:** 2026-03-11
 - **Priority:** medium
 - **Description:** Timer changes color as deadline approaches: >50% remaining = green, <25% = yellow with pulse animation, <5 minutes = red with "CLOSING SOON" label and subtle heartbeat animation. Manufactured urgency mirrors BeReal's "post now" mechanic — same psychological lever, applied to voting.
-- **Status:** backlog
+- **Status:** done — implemented three urgency tiers: normal, yellow (<25min), red+pulse (<5min) with "Closing soon" label
 
 ### "Too close to call" tension state
 - **Date Added:** 2026-03-11
