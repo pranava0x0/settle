@@ -5,10 +5,34 @@ import { cn } from "@/lib/utils";
 
 export type SquabbleTheme = "none" | "ring" | "molten" | "impact";
 
-const THEMES: { id: SquabbleTheme; emoji: string; label: string }[] = [
-  { id: "ring", emoji: "\uD83E\uDD4A", label: "The Ring" },
-  { id: "molten", emoji: "\uD83C\uDF0B", label: "Molten" },
-  { id: "impact", emoji: "\u2604\uFE0F", label: "Impact" },
+const THEMES: {
+  id: SquabbleTheme;
+  emoji: string;
+  label: string;
+  gradient: string;
+  activeRing: string;
+}[] = [
+  {
+    id: "ring",
+    emoji: "\uD83E\uDD4A",
+    label: "The Ring",
+    gradient: "bg-gradient-to-r from-red-500 via-yellow-400 to-blue-600",
+    activeRing: "ring-red-400/60",
+  },
+  {
+    id: "molten",
+    emoji: "\uD83C\uDF0B",
+    label: "Molten",
+    gradient: "bg-gradient-to-r from-orange-600 via-red-500 to-yellow-500",
+    activeRing: "ring-orange-400/60",
+  },
+  {
+    id: "impact",
+    emoji: "\u2604\uFE0F",
+    label: "Impact",
+    gradient: "bg-gradient-to-r from-cyan-400 via-purple-500 to-orange-500",
+    activeRing: "ring-cyan-400/60",
+  },
 ];
 
 const STORAGE_KEY = "squabble-theme";
@@ -28,7 +52,6 @@ export const ThemeToggle = () => {
   useEffect(() => {
     if (!mounted) return;
 
-    // Remove all theme classes from the page wrapper
     const wrapper = document.getElementById("squabble-page");
     if (!wrapper) return;
 
@@ -47,22 +70,33 @@ export const ThemeToggle = () => {
   if (!mounted) return null;
 
   return (
-    <div className="mb-3 flex items-center justify-center gap-1">
-      {THEMES.map((t) => (
-        <button
-          key={t.id}
-          onClick={() => setTheme(theme === t.id ? "none" : t.id)}
-          className={cn(
-            "rounded-full px-2 py-1 text-sm transition-all",
-            theme === t.id
-              ? "bg-foreground/10 ring-1 ring-foreground/20 scale-110"
-              : "opacity-60 hover:opacity-100",
-          )}
-          title={t.label}
-        >
-          {t.emoji}
-        </button>
-      ))}
+    <div className="flex items-center gap-1">
+      {THEMES.map((t) => {
+        const isActive = theme === t.id;
+        return (
+          <button
+            key={t.id}
+            onClick={() => setTheme(isActive ? "none" : t.id)}
+            className={cn(
+              "relative size-7 rounded-full transition-all duration-200",
+              isActive
+                ? `ring-2 ${t.activeRing} scale-110 shadow-md`
+                : "opacity-50 hover:opacity-90 hover:scale-105",
+            )}
+            title={t.label}
+          >
+            <span
+              className={cn(
+                "absolute inset-0.5 rounded-full",
+                t.gradient,
+              )}
+            />
+            <span className="relative z-10 flex items-center justify-center text-xs leading-none">
+              {t.emoji}
+            </span>
+          </button>
+        );
+      })}
     </div>
   );
 };

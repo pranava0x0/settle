@@ -17,7 +17,6 @@ import { SquabbleResults } from "@/components/squabble-results";
 import { ShareButton } from "@/components/share-button";
 import { RealtimeVoteListener } from "@/components/realtime-vote-listener";
 import { VoterBreakdown } from "@/components/voter-breakdown";
-import { ThemeToggle } from "@/components/theme-toggle";
 
 type PageProps = {
   params: Promise<{ slug: string }>;
@@ -145,7 +144,6 @@ export default async function SquabblePage({ params }: PageProps) {
 
   return (
     <div id="squabble-page" className="squabble-page mx-auto max-w-lg px-4 py-8">
-      <ThemeToggle />
       <Card>
         <CardHeader className="text-center">
           <div className="mb-2 flex items-center justify-center gap-2">
