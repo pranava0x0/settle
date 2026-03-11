@@ -12,6 +12,7 @@ import {
   DEFAULT_THEME,
   THEME_STORAGE_KEY,
   THEME_LIST,
+  THEME_COLORS,
 } from "@/lib/constants";
 
 describe("SQUABBLE_STATUS", () => {
@@ -186,5 +187,31 @@ describe("THEME_LIST", () => {
   it("includes the default theme", () => {
     const ids = THEME_LIST.map((t) => t.id);
     expect(ids).toContain(DEFAULT_THEME);
+  });
+});
+
+describe("THEME_COLORS", () => {
+  it("has color entries for every theme in SQUABBLE_THEMES", () => {
+    for (const themeId of Object.values(SQUABBLE_THEMES)) {
+      expect(THEME_COLORS).toHaveProperty(themeId);
+    }
+  });
+
+  it("each color entry has all required hex fields", () => {
+    const requiredFields = [
+      "background",
+      "foreground",
+      "card",
+      "cardForeground",
+      "muted",
+      "mutedForeground",
+    ];
+    for (const themeId of Object.values(SQUABBLE_THEMES)) {
+      const colors = THEME_COLORS[themeId];
+      for (const field of requiredFields) {
+        expect(colors).toHaveProperty(field);
+        expect((colors as Record<string, string>)[field]).toMatch(/^#[0-9a-fA-F]{6}$/);
+      }
+    }
   });
 });

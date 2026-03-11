@@ -224,7 +224,15 @@ Prioritized by impact on viral growth, share flow, and core UX delight.
 
 ---
 
-## THEMES — Animated dispute skins
+### DB migration: rename `disputes` → `squabbles` and `dispute_id` → `squabble_id`
+- **Date Added:** 2026-03-11
+- **Priority:** medium
+- **Description:** The DB schema still uses `disputes` (table) and `dispute_id` (foreign key in votes). All app-layer code already uses "squabble" but Supabase queries reference the old column names as string literals. Requires a migration to rename the table and column, update RLS policies, regenerate TypeScript types with `pnpm db:types`, and update all Supabase query strings in server actions and pages.
+- **Status:** backlog
+
+---
+
+## THEMES — Animated squabble skins
 
 Three optional visual themes selectable via a small pill toggle (🥊 🌋 ☄️) pinned at the top of the dispute page. Theme choice stored in `localStorage`. Each theme swaps a CSS class on the page wrapper and plugs into existing animation hooks (vote cast, timer urgency, winner reveal). Default/no-theme always works as baseline.
 

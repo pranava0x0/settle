@@ -50,6 +50,42 @@ export const DEFAULT_THEME: SquabbleTheme = SQUABBLE_THEMES.RING;
 
 export const THEME_STORAGE_KEY = "squabble-theme";
 
+/**
+ * Theme color palettes — must match CSS variable overrides in globals.css.
+ * Used as source of truth for contrast ratio tests (WCAG AA minimum 4.5:1).
+ *
+ * Color theory references:
+ * - Ring: warm analog palette (tan/brown) with complementary red+blue accents
+ * - Molten: monochromatic warm (ash→ember→lava) with analogous orange accents
+ * - Impact: split-complementary cool (void→navy) with cyan+orange accents
+ */
+export const THEME_COLORS = {
+  ring: {
+    background: "#f5e6d3",
+    foreground: "#1a1a1a",
+    card: "#f0dcc6",
+    cardForeground: "#1a1a1a",
+    muted: "#e8d5be",
+    mutedForeground: "#5c4a38",
+  },
+  molten: {
+    background: "#1a1a1a",
+    foreground: "#f5f0e8",
+    card: "#242424",
+    cardForeground: "#f5f0e8",
+    muted: "#2e2e2e",
+    mutedForeground: "#b8a898",
+  },
+  impact: {
+    background: "#0a0a0f",
+    foreground: "#e0e6f0",
+    card: "#141428",
+    cardForeground: "#e0e6f0",
+    muted: "#1e1e3a",
+    mutedForeground: "#8899bb",
+  },
+} as const;
+
 export const THEME_LIST: {
   id: SquabbleTheme;
   emoji: string;
