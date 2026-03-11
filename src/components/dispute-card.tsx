@@ -76,7 +76,7 @@ export const DisputeCard = ({
           </div>
           {userVoteSide && (
             <p className="text-muted-foreground mt-1 text-xs">
-              You were with {userVoteSide === "a" ? sideA : sideB}
+              Your vote: {userVoteSide === "a" ? sideA : sideB}
             </p>
           )}
         </CardContent>

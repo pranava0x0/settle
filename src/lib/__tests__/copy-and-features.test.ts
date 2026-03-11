@@ -281,11 +281,16 @@ describe("Countdown timer formatting", () => {
 });
 
 describe("VoteButtons copy", () => {
-  it("formats button label as 'I'm with [Side]'", () => {
+  it("button labels show side names directly", () => {
     const sideA = "Pizza";
     const sideB = "Tacos";
-    expect(`I'm with ${sideA}`).toBe("I'm with Pizza");
-    expect(`I'm with ${sideB}`).toBe("I'm with Tacos");
+    expect(sideA).toBe("Pizza");
+    expect(sideB).toBe("Tacos");
+  });
+
+  it("post-vote confirmation shows 'Your vote: [Side]'", () => {
+    const sideA = "Pizza";
+    expect(`Your vote: ${sideA}`).toBe("Your vote: Pizza");
   });
 
   it("shows 'others agree' when voteCountForUserSide > 1", () => {
@@ -317,21 +322,23 @@ describe("VoteButtons copy", () => {
 });
 
 describe("Vote count display text", () => {
-  it("uses singular 'person voted' for count of 1", () => {
+  it("uses singular 'person voted' for count of 1 (results view)", () => {
     const totalVotes = 1;
     const text = `${totalVotes} ${totalVotes === 1 ? "person voted" : "people voted"}`;
     expect(text).toBe("1 person voted");
   });
 
-  it("uses plural 'people voted' for count > 1", () => {
+  it("uses plural 'people voted' for count > 1 (results view)", () => {
     const totalVotes = 5;
     const text = `${totalVotes} ${totalVotes === 1 ? "person voted" : "people voted"}`;
     expect(text).toBe("5 people voted");
   });
 
-  it("uses correct 'person has'/'people have' for live count", () => {
-    expect(`1 ${"person has"} voted`).toBe("1 person has voted");
-    expect(`3 ${"people have"} voted`).toBe("3 people have voted");
+  it("uses 'votes so far' for live dispute count", () => {
+    const totalVotes = 1;
+    expect(`${totalVotes} ${totalVotes === 1 ? "vote" : "votes"} so far`).toBe("1 vote so far");
+    const totalVotes2 = 3;
+    expect(`${totalVotes2} ${totalVotes2 === 1 ? "vote" : "votes"} so far`).toBe("3 votes so far");
   });
 });
 

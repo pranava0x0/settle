@@ -57,12 +57,12 @@ export const VoteButtons = ({
     const othersCount = (voteCountForUserSide ?? 1) - 1;
     return (
       <p className="text-muted-foreground text-center text-sm">
-        You&apos;re with{" "}
+        Your vote:{" "}
         <span className="font-semibold">
           {userVote === "a" ? sideA : sideB}
         </span>
         {othersCount > 0 && (
-          <>. {othersCount} {othersCount === 1 ? "other agrees" : "others agree"}</>
+          <> · {othersCount} {othersCount === 1 ? "other agrees" : "others agree"}</>
         )}
       </p>
     );
@@ -77,7 +77,7 @@ export const VoteButtons = ({
           onClick={() => handleVote("a")}
           disabled={loading}
         >
-          I&apos;m with {sideA}
+          {sideA}
         </Button>
         <Button
           variant="outline"
@@ -85,7 +85,7 @@ export const VoteButtons = ({
           onClick={() => handleVote("b")}
           disabled={loading}
         >
-          I&apos;m with {sideB}
+          {sideB}
         </Button>
       </div>
       {!isLoggedIn && (

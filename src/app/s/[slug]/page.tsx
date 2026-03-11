@@ -178,7 +178,7 @@ export default async function DisputePage({ params }: PageProps) {
             <>
               {totalVotes > 0 && (
                 <p className="text-muted-foreground text-center text-sm">
-                  {totalVotes} {totalVotes === 1 ? "person has" : "people have"} voted
+                  {totalVotes} {totalVotes === 1 ? "vote" : "votes"} so far
                 </p>
               )}
               <VoteButtons
