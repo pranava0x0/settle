@@ -16,7 +16,18 @@ export async function sendOtp(phone: string) {
   });
 
   if (error) {
-    console.error("sendOtp error:", error.message);
+    console.error("sendOtp error:", error.message, error.status);
+    // Twilio trial accounts can only send to verified numbers
+    if (
+      error.message?.includes("unverified") ||
+      error.message?.includes("verify") ||
+      error.status === 500
+    ) {
+      return {
+        error:
+          "Unable to send SMS to this number. The service may be temporarily unavailable — please try again later.",
+      };
+    }
     return { error: "Failed to send verification code. Please try again." };
   }
 

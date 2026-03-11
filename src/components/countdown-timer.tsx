@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { useCountdown } from "@/hooks/use-countdown";
 import { cn } from "@/lib/utils";
 
@@ -10,9 +11,16 @@ type CountdownTimerProps = {
 
 export const CountdownTimer = ({ expiresAt, onExpire }: CountdownTimerProps) => {
   const { isExpired, formatted, minutes } = useCountdown(expiresAt);
+  const expireCalled = useRef(false);
+
+  useEffect(() => {
+    if (isExpired && onExpire && !expireCalled.current) {
+      expireCalled.current = true;
+      onExpire();
+    }
+  }, [isExpired, onExpire]);
 
   if (isExpired) {
-    if (onExpire) onExpire();
     return (
       <div className="text-muted-foreground text-sm font-medium">
         Voting closed

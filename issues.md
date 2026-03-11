@@ -122,3 +122,30 @@ Living bug and issue tracker. Log bugs as they're found, update when fixed.
 - **Root Cause:** config — Supabase Auth URL Configuration only has localhost, not the production domain.
 - **Status:** Open
 - **Fix:** Add Vercel production URL to Supabase Dashboard → Authentication → URL Configuration → Site URL and Redirect URLs.
+
+### [ISSUE-013] OTP fails for non-verified phone numbers (Twilio trial)
+- **Date:** 2026-03-11
+- **Area:** auth
+- **Description:** Friends cannot receive OTP codes. `sendOtp` returns a generic "Failed to send verification code" error. Works only for the developer's own number.
+- **Root Cause:** config — Twilio account is on free trial. Trial accounts can only send SMS/Verify to phone numbers manually verified in the Twilio Console. All other numbers are rejected.
+- **Status:** Open
+- **Fix:** Upgrade Twilio account from trial to paid (add payment method in Twilio Console → $20 minimum). This removes the verified-caller-ID restriction and allows Twilio Verify to send to any phone number. Improved error message in `sendOtp` to be more descriptive.
+- **Regression Test:** No — requires Twilio account upgrade to verify.
+
+### [ISSUE-014] CountdownTimer calls onExpire during render
+- **Date:** 2026-03-11
+- **Area:** ui
+- **Description:** `CountdownTimer` component calls `onExpire()` callback directly inside the render body when `isExpired` is true. This is a side effect during render — violates React rules and could cause bugs if the callback triggers state updates or navigation.
+- **Root Cause:** code bug — callback invoked during render instead of in a `useEffect`.
+- **Status:** Fixed
+- **Fix:** Moved `onExpire` call into a `useEffect` with a `useRef` guard to ensure it fires exactly once when the timer expires.
+- **Regression Test:** No — prop is currently unused but now safe to use.
+
+### [ISSUE-015] DisputeCard shows "Tie" for disputes with zero votes
+- **Date:** 2026-03-11
+- **Area:** ui
+- **Description:** On the dashboard, disputes that expired with no votes show "Tie" badge. Both zero-vote and actual-tie disputes have `status: "expired"` and `winner_side: null`, so the card can't distinguish them. "Tie" is misleading when nobody voted.
+- **Root Cause:** code bug — `statusLabel` logic treated all non-winner closed disputes as ties.
+- **Status:** Fixed
+- **Fix:** Changed label from "Tie" to "No Winner" which is accurate for both tie and zero-vote cases.
+- **Regression Test:** No
