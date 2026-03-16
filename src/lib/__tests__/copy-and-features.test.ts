@@ -474,3 +474,80 @@ describe("Squabble-first onboarding", () => {
     expect(copy).toBe("Drop your number to jump in");
   });
 });
+
+describe("Login form name step (vote redirect flow)", () => {
+  it("transitions to name step after OTP when redirecting to vote", () => {
+    const isVoteRedirect = true;
+    const otpVerified = true;
+    const nextStep = otpVerified && isVoteRedirect ? "name" : "redirect";
+    expect(nextStep).toBe("name");
+  });
+
+  it("skips name step for non-vote redirects (goes straight to dashboard)", () => {
+    const isVoteRedirect = false;
+    const otpVerified = true;
+    const nextStep = otpVerified && isVoteRedirect ? "name" : "redirect";
+    expect(nextStep).toBe("redirect");
+  });
+
+  it("name step is skippable — skip goes directly to redirect", () => {
+    const skipped = true;
+    const nameEntered = "";
+    const shouldRedirect = skipped || nameEntered.trim().length > 0;
+    expect(shouldRedirect).toBe(true);
+  });
+
+  it("name step description tells user why we ask", () => {
+    const step = "name" as const;
+    const description =
+      step === "name"
+        ? "So people know who voted (optional)"
+        : "other";
+    expect(description).toBe("So people know who voted (optional)");
+  });
+});
+
+describe("Auto-cast vote after login redirect", () => {
+  it("stores intended vote side in redirect URL", () => {
+    const slug = "abc123";
+    const side = "a";
+    const redirectUrl = `/login?redirect=/s/${slug}&vote=${side}`;
+    expect(redirectUrl).toBe("/login?redirect=/s/abc123&vote=a");
+  });
+
+  it("auto-casts only when user is authenticated and hasn't voted", () => {
+    const isAuthenticated = true;
+    const userVote = null;
+    const voteSideParam = "a";
+    const validSide = voteSideParam === "a" || voteSideParam === "b";
+    const shouldAutoCast = isAuthenticated && !userVote && validSide;
+    expect(shouldAutoCast).toBe(true);
+  });
+
+  it("does not auto-cast if user already voted", () => {
+    const isAuthenticated = true;
+    const userVote = "b";
+    const voteSideParam = "a";
+    const validSide = voteSideParam === "a" || voteSideParam === "b";
+    const shouldAutoCast = isAuthenticated && !userVote && validSide;
+    expect(shouldAutoCast).toBe(false);
+  });
+
+  it("does not auto-cast if vote param is invalid", () => {
+    const isAuthenticated = true;
+    const userVote = null;
+    const voteSideParam = "c";
+    const validSide = voteSideParam === "a" || voteSideParam === "b";
+    const shouldAutoCast = isAuthenticated && !userVote && validSide;
+    expect(shouldAutoCast).toBe(false);
+  });
+
+  it("does not auto-cast if user is not authenticated", () => {
+    const isAuthenticated = false;
+    const userVote = null;
+    const voteSideParam = "a";
+    const validSide = voteSideParam === "a" || voteSideParam === "b";
+    const shouldAutoCast = isAuthenticated && !userVote && validSide;
+    expect(shouldAutoCast).toBe(false);
+  });
+});

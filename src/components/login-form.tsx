@@ -12,7 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { sendOtp, verifyOtp } from "@/lib/actions/auth";
+import { sendOtp, verifyOtp, updateDisplayName } from "@/lib/actions/auth";
 import { APP_NAME } from "@/lib/constants";
 
 export const LoginForm = () => {
@@ -21,9 +21,10 @@ export const LoginForm = () => {
   const redirectTo = searchParams.get("redirect") || "/dashboard";
   const isVoteRedirect = redirectTo.startsWith("/s/");
 
-  const [step, setStep] = useState<"phone" | "otp">("phone");
+  const [step, setStep] = useState<"phone" | "otp" | "name">("phone");
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
+  const [displayName, setDisplayName] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
@@ -62,11 +63,38 @@ export const LoginForm = () => {
         return;
       }
 
+      if (isVoteRedirect) {
+        setStep("name");
+        return;
+      }
+
       router.push(redirectTo);
       router.refresh();
     },
-    [phone, otp, loading, redirectTo, router],
+    [phone, otp, loading, redirectTo, router, isVoteRedirect],
   );
+
+  const handleSaveName = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    const result = await updateDisplayName(displayName);
+    setLoading(false);
+
+    if (result.error) {
+      setError(result.error);
+      return;
+    }
+
+    router.push(redirectTo);
+    router.refresh();
+  };
+
+  const handleSkipName = () => {
+    router.push(redirectTo);
+    router.refresh();
+  };
 
   const handleOtpChange = (value: string) => {
     // Strip non-numeric characters
@@ -92,7 +120,9 @@ export const LoginForm = () => {
               ? isVoteRedirect
                 ? "Enter your number to cast your vote"
                 : "Drop your number to jump in"
-              : "Enter the 6-digit code we just texted you"}
+              : step === "otp"
+                ? "Enter the 6-digit code we just texted you"
+                : "So people know who voted (optional)"}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -116,7 +146,7 @@ export const LoginForm = () => {
                 {loading ? "Sending..." : "Send me a code"}
               </Button>
             </form>
-          ) : (
+          ) : step === "otp" ? (
             <form ref={formRef} onSubmit={handleVerifyOtp} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="otp">Your code</Label>
@@ -150,6 +180,37 @@ export const LoginForm = () => {
                 }}
               >
                 Use a different number
+              </Button>
+            </form>
+          ) : (
+            <form onSubmit={handleSaveName} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="displayName">What should we call you?</Label>
+                <Input
+                  id="displayName"
+                  type="text"
+                  placeholder="Your first name"
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  maxLength={50}
+                  autoFocus
+                />
+              </div>
+              {error && <p className="text-sm text-red-500">{error}</p>}
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={loading || !displayName.trim()}
+              >
+                {loading ? "Saving..." : "Save & vote"}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full"
+                onClick={handleSkipName}
+              >
+                Skip
               </Button>
             </form>
           )}
