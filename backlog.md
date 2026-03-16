@@ -97,7 +97,7 @@ Prioritized by impact on viral growth, share flow, and core UX delight.
 - **Date Added:** 2026-03-11
 - **Priority:** medium
 - **Description:** After casting a vote, results animate in: a horizontal bar fills left-to-right for each side simultaneously with vote counts incrementing like an odometer. Before voting, the bar is hidden — just "Vote to see results." Twitter poll pattern but more visceral. The immediate reveal creates the "did I pick the winner?" dopamine hit.
-- **Status:** backlog
+- **Status:** done — animated bar-fill (600ms CSS animation) reveals after voting. "Vote to see where things stand" teaser for logged-in non-voters.
 
 ### Countdown timer urgency states
 - **Date Added:** 2026-03-11
@@ -109,14 +109,14 @@ Prioritized by impact on viral growth, share flow, and core UX delight.
 - **Date Added:** 2026-03-11
 - **Priority:** medium
 - **Description:** When the leading side has ≤1 vote margin, show a pulsing indicator: "It's too close to call — every vote matters." Updates in real-time via Supabase Realtime. Gas app's compliment poll tension — you want to be the deciding vote.
-- **Status:** backlog
+- **Status:** done — pulsing "Too close to call — every vote matters" when margin ≤1. Themes override animate-pulse with custom animations.
 
 ### "Be the decider" banner when exactly tied
 - **Date Added:** 2026-03-11
 - **Priority:** medium
 - **Description:** If vote count is exactly tied, a full-width high-contrast banner appears: "It's [N]–[N]. Your vote decides this." The next voter is literally the tiebreaker — highest possible sense of individual consequence. Disappears once anyone votes.
 - **Implementation notes (2026-03-15):** In `src/app/s/[slug]/page.tsx`, add condition: if `voteCountA === voteCountB && voteCountA > 0 && !userVote && !showResults`, render a high-contrast banner above VoteButtons. ~5 lines in page component. No new components needed.
-- **Status:** ready
+- **Status:** done — high-contrast bg-foreground/text-background banner: "It's N–N. Your vote decides this."
 
 ### "Side B is gaining" live page alert
 - **Date Added:** 2026-03-11
@@ -128,7 +128,7 @@ Prioritized by impact on viral growth, share flow, and core UX delight.
 - **Date Added:** 2026-03-11
 - **Priority:** medium
 - **Description:** When a dispute closes and your side won, opening the page triggers a 2-second Canvas confetti burst with large text: "You were right." Losing side: no confetti, just "You were outvoted — [winning side] wins." Lean into the asymmetry — winners feel rewarded, losers feel it.
-- **Status:** backlog
+- **Status:** done — canvas-confetti (80 particles) fires on page load for winners. "You were right." / "You were outvoted." personalized copy.
 
 ### Blurred avatar wall of voters (social proof)
 - **Date Added:** 2026-03-11
@@ -140,7 +140,7 @@ Prioritized by impact on viral growth, share flow, and core UX delight.
 - **Date Added:** 2026-03-11
 - **Priority:** medium
 - **Description:** When a dispute closes, a "Copy result card" button generates a shareable image: question, scoreline, who voted for what (first names), and Settle watermark. Sized for Instagram Stories (1080×1920) and iMessage. One tap to copy/export. Spotify Wrapped mechanic — make sharing the result trivially easy, card does the marketing. Secondary viral moment beyond the initial vote invite.
-- **Status:** backlog
+- **Status:** done — Next.js ImageResponse at /api/og/result/[slug]. OG (1200x630) + Story (1080x1920) formats. Native share API on mobile, download fallback. Dynamic OG image in metadata for closed squabbles.
 
 ### "The jury is in" push notification to creator
 - **Date Added:** 2026-03-11
@@ -158,13 +158,13 @@ Prioritized by impact on viral growth, share flow, and core UX delight.
 - **Date Added:** 2026-03-11
 - **Priority:** medium
 - **Description:** After a dispute closes, show who voted for what (with display names). Currently results only show vote counts. Transparency makes it more fun and social — friends calling each other out.
-- **Status:** partially done — creator-only voter breakdown added (collapsible "Who voted" section). Next step: consider making it visible to all voters after dispute closes.
+- **Status:** done — voter breakdown visible to all voters after squabble closes (not just creator). Creator always sees it.
 
 ### Rematch button
 - **Date Added:** 2026-03-11
 - **Priority:** medium
 - **Description:** After a dispute closes, show a "Rematch" button that instantly clones it with sides swapped and a fresh timer. Gas app re-engagement loop: the product itself creates the next piece of content. One dispute begets the next. Also supports dispute chain/rivalry history.
-- **Status:** backlog
+- **Status:** done — createRematch server action swaps sides, infers original duration. "Rematch — swap sides" button shown to logged-in users on closed squabbles.
 
 ### Tie-breaking mechanism
 - **Date Added:** 2026-03-10
@@ -193,7 +193,7 @@ Prioritized by impact on viral growth, share flow, and core UX delight.
 - **Priority:** low
 - **Description:** When tapping a vote button: spring animation (scale up then settle), background flashes side's color for 200ms, medium haptic tap. Makes casting a vote feel decisive and satisfying — like pressing a real button. Keep total animation under 300ms.
 - **Implementation notes (2026-03-15):** In `src/components/vote-buttons.tsx`, after `castVote` succeeds, add `if (navigator.vibrate) navigator.vibrate(50);` for haptic. For spring animation, add CSS keyframes `vote-pop` (scale 1→1.08→1, 200ms ease-out) applied via a brief state toggle on the clicked button. ~15 lines total, no dependencies.
-- **Status:** ready
+- **Status:** done — `navigator.vibrate?.(50)` + CSS `animate-vote-pop` (scale 1→1.08→1, 200ms ease-out) on voted button.
 
 ### "X people watching" live viewer count
 - **Date Added:** 2026-03-11
@@ -247,7 +247,7 @@ Prioritized by impact on viral growth, share flow, and core UX delight.
 - **Date Added:** 2026-03-11
 - **Priority:** low
 - **Description:** Let users enter a custom duration instead of only the 4 presets (15m, 1h, 6h, 24h). Useful for "settle this by end of day" or "5-minute lightning round" scenarios.
-- **Status:** backlog
+- **Status:** done — "Other" pill on create page reveals minutes input (1–10080). Zod schema validates server-side.
 
 ### Dark mode
 - **Date Added:** 2026-03-11
