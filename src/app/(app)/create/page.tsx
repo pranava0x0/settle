@@ -22,6 +22,8 @@ const CreateSquabblePage = () => {
   const [selectedDuration, setSelectedDuration] = useState<number>(
     TIMER_PRESETS[1].value,
   );
+  const [isCustom, setIsCustom] = useState(false);
+  const [customMinutes, setCustomMinutes] = useState("");
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -100,7 +102,10 @@ const CreateSquabblePage = () => {
                       key={preset.value}
                       type="button"
                       aria-pressed={isSelected}
-                      onClick={() => setSelectedDuration(preset.value)}
+                      onClick={() => {
+                        setSelectedDuration(preset.value);
+                        setIsCustom(false);
+                      }}
                       className={cn(
                         "flex flex-1 items-center justify-center gap-1 rounded-full px-3 py-2 text-sm font-medium transition-all",
                         "border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
@@ -114,12 +119,53 @@ const CreateSquabblePage = () => {
                     </button>
                   );
                 })}
+                <button
+                  type="button"
+                  aria-pressed={isCustom}
+                  onClick={() => {
+                    setIsCustom(true);
+                    setSelectedDuration(0);
+                  }}
+                  className={cn(
+                    "flex flex-1 items-center justify-center gap-1 rounded-full px-3 py-2 text-sm font-medium transition-all",
+                    "border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                    isCustom
+                      ? "border-primary bg-primary/10 text-foreground font-semibold ring-2 ring-primary/20"
+                      : "border-border bg-background text-muted-foreground hover:bg-muted"
+                  )}
+                >
+                  {isCustom && <Check className="h-3.5 w-3.5" />}
+                  Other
+                </button>
               </div>
+              {isCustom && (
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    placeholder="Minutes"
+                    min={1}
+                    max={10080}
+                    value={customMinutes}
+                    onChange={(e) => {
+                      setCustomMinutes(e.target.value);
+                      const parsed = parseInt(e.target.value, 10);
+                      if (!isNaN(parsed) && parsed >= 1 && parsed <= 10080) {
+                        setSelectedDuration(parsed);
+                      }
+                    }}
+                    className="w-28"
+                    autoFocus
+                  />
+                  <span className="text-muted-foreground text-sm">
+                    minutes (max 7 days)
+                  </span>
+                </div>
+              )}
             </div>
 
             {error && <p className="text-sm text-red-500">{error}</p>}
 
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button type="submit" className="w-full" disabled={loading || (isCustom && selectedDuration < 1)}>
               {loading ? "Firing it up..." : "Let\u0027s squabble"}
             </Button>
           </form>
