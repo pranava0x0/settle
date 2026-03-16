@@ -33,7 +33,7 @@ export const RematchButton = ({ slug }: RematchButtonProps) => {
         disabled={loading}
       >
         <RotateCcw className="mr-2 h-4 w-4" />
-        {loading ? "Setting up rematch..." : "Rematch \u2014 swap sides"}
+        {loading ? "Setting up rematch..." : "Rematch"}
       </Button>
       {error && <p className="text-center text-xs text-red-500">{error}</p>}
     </div>

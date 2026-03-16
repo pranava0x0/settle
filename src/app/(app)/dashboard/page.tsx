@@ -5,6 +5,8 @@ import { DisplayNamePrompt } from "@/components/display-name-prompt";
 import { buttonVariants } from "@/components/ui/button-variants";
 import Link from "next/link";
 import { ROUTES } from "@/lib/constants";
+import { isExpired } from "@/lib/utils";
+import { closeSquabble } from "@/lib/actions/squabbles";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -39,7 +41,22 @@ export default async function DashboardPage() {
     .eq("user_id", user.id)
     .order("created_at", { ascending: false });
 
-  const createdSquabbles = mySquabbles ?? [];
+  // Lazy close: close any open squabbles whose timer has expired
+  let createdSquabbles = mySquabbles ?? [];
+  const expiredOpen = createdSquabbles.filter(
+    (d) => d.status === "open" && isExpired(d.expires_at),
+  );
+  if (expiredOpen.length > 0) {
+    await Promise.all(expiredOpen.map((d) => closeSquabble(d.id)));
+    // Re-fetch to get updated statuses
+    const { data: refreshed } = await supabase
+      .from("disputes")
+      .select("*, votes(count)")
+      .eq("creator_id", user.id)
+      .order("created_at", { ascending: false });
+    createdSquabbles = refreshed ?? createdSquabbles;
+  }
+
   const activeSquabbles = createdSquabbles.filter((d) => d.status === "open");
   const settledSquabbles = createdSquabbles.filter((d) => d.status !== "open");
 

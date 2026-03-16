@@ -46,6 +46,7 @@ export const ShareResultButton = ({ slug }: ShareResultButtonProps) => {
     setDownloading(true);
     try {
       const response = await fetch(storyUrl);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -54,9 +55,12 @@ export const ShareResultButton = ({ slug }: ShareResultButtonProps) => {
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      // Delay revoke so the browser can start the download
+      setTimeout(() => URL.revokeObjectURL(url), 3000);
     } catch (err) {
       console.error("Download failed:", err);
+      // Fallback: open image in new tab so user can long-press/right-click save
+      window.open(storyUrl, "_blank");
     }
     setDownloading(false);
   };
