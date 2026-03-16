@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { castVote } from "@/lib/actions/votes";
 import { useRouter } from "next/navigation";
+import { cn } from "@/lib/utils";
 
 type VoteButtonsProps = {
   squabbleId: string;
@@ -29,6 +30,7 @@ export const VoteButtons = ({
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [votedSide, setVotedSide] = useState<"a" | "b" | null>(null);
 
   const handleVote = async (side: "a" | "b") => {
     if (!isLoggedIn) {
@@ -45,6 +47,8 @@ export const VoteButtons = ({
     if (result.error) {
       setError(result.error);
     } else {
+      navigator.vibrate?.(50);
+      setVotedSide(side);
       router.refresh();
     }
   };
@@ -73,7 +77,10 @@ export const VoteButtons = ({
       <div className="grid grid-cols-2 gap-3">
         <Button
           variant="outline"
-          className="h-auto min-h-[3rem] whitespace-normal py-3"
+          className={cn(
+            "h-auto min-h-[3rem] whitespace-normal py-3",
+            votedSide === "a" && "animate-vote-pop",
+          )}
           onClick={() => handleVote("a")}
           disabled={loading}
         >
@@ -81,7 +88,10 @@ export const VoteButtons = ({
         </Button>
         <Button
           variant="outline"
-          className="h-auto min-h-[3rem] whitespace-normal py-3"
+          className={cn(
+            "h-auto min-h-[3rem] whitespace-normal py-3",
+            votedSide === "b" && "animate-vote-pop",
+          )}
           onClick={() => handleVote("b")}
           disabled={loading}
         >

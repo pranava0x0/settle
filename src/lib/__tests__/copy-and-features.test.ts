@@ -551,3 +551,77 @@ describe("Auto-cast vote after login redirect", () => {
     expect(shouldAutoCast).toBe(false);
   });
 });
+
+describe("Decider banner logic", () => {
+  const shouldShowDeciderBanner = (
+    voteCountA: number,
+    voteCountB: number,
+    userVote: "a" | "b" | null,
+    showResults: boolean,
+  ) => voteCountA === voteCountB && voteCountA > 0 && !userVote && !showResults;
+
+  it("shows when tied, no user vote, not closed", () => {
+    expect(shouldShowDeciderBanner(3, 3, null, false)).toBe(true);
+  });
+  it("hides when not tied", () => {
+    expect(shouldShowDeciderBanner(3, 2, null, false)).toBe(false);
+  });
+  it("hides when tied at zero", () => {
+    expect(shouldShowDeciderBanner(0, 0, null, false)).toBe(false);
+  });
+  it("hides when user already voted", () => {
+    expect(shouldShowDeciderBanner(3, 3, "a", false)).toBe(false);
+  });
+  it("hides when results showing", () => {
+    expect(shouldShowDeciderBanner(3, 3, null, true)).toBe(false);
+  });
+});
+
+describe("Too close to call tension state", () => {
+  const isTooCloseToCall = (
+    voteCountA: number,
+    voteCountB: number,
+    showResults: boolean,
+  ) => {
+    const margin = Math.abs(voteCountA - voteCountB);
+    const totalVotes = voteCountA + voteCountB;
+    return margin <= 1 && totalVotes > 0 && !showResults;
+  };
+
+  it("shows when tied with votes", () => {
+    expect(isTooCloseToCall(3, 3, false)).toBe(true);
+  });
+  it("shows when margin is 1", () => {
+    expect(isTooCloseToCall(4, 3, false)).toBe(true);
+  });
+  it("hides when margin is 2+", () => {
+    expect(isTooCloseToCall(5, 3, false)).toBe(false);
+  });
+  it("hides when no votes", () => {
+    expect(isTooCloseToCall(0, 0, false)).toBe(false);
+  });
+  it("hides when results showing", () => {
+    expect(isTooCloseToCall(3, 3, true)).toBe(false);
+  });
+});
+
+describe("Voter breakdown visibility", () => {
+  const shouldShowVoters = (
+    isCreator: boolean,
+    showResults: boolean,
+    userVote: "a" | "b" | null,
+  ) => isCreator || (showResults && !!userVote);
+
+  it("shows for creator always", () => {
+    expect(shouldShowVoters(true, false, null)).toBe(true);
+  });
+  it("shows for voter when results visible", () => {
+    expect(shouldShowVoters(false, true, "a")).toBe(true);
+  });
+  it("hides for non-voter even when results visible", () => {
+    expect(shouldShowVoters(false, true, null)).toBe(false);
+  });
+  it("hides for voter while squabble is open", () => {
+    expect(shouldShowVoters(false, false, "a")).toBe(false);
+  });
+});

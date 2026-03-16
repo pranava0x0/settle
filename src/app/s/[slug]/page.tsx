@@ -131,10 +131,15 @@ export default async function SquabblePage({ params, searchParams }: PageProps) 
     redirect(`/s/${slug}`);
   }
 
-  // Fetch voter breakdown for creator only
+  const expired = isExpired(squabble.expires_at);
+  const isClosed = squabble.status !== "open";
+  const showResults = isClosed || expired;
+
+  // Fetch voter breakdown — creator always, other voters after close
   const isCreator = user?.id === squabble.creator_id;
+  const shouldShowVoters = isCreator || (showResults && !!userVote);
   let voters: { side: "a" | "b"; display_name: string | null; voted_at: string }[] = [];
-  if (isCreator) {
+  if (shouldShowVoters) {
     const { data: voteRows } = await supabase
       .from("votes")
       .select("side, created_at, users(display_name)")
@@ -152,11 +157,11 @@ export default async function SquabblePage({ params, searchParams }: PageProps) 
       });
     }
   }
-
-  const expired = isExpired(squabble.expires_at);
-  const isClosed = squabble.status !== "open";
-  const showResults = isClosed || expired;
   const totalVotes = (voteCountA ?? 0) + (voteCountB ?? 0);
+  const margin = Math.abs((voteCountA ?? 0) - (voteCountB ?? 0));
+  const isTied = (voteCountA ?? 0) === (voteCountB ?? 0) && (voteCountA ?? 0) > 0;
+  const showDeciderBanner = isTied && !userVote && !showResults;
+  const isTooCloseToCall = margin <= 1 && totalVotes > 0 && !showResults;
 
   return (
     <div id="squabble-page" className="squabble-page mx-auto max-w-lg px-4 py-8">
@@ -192,11 +197,20 @@ export default async function SquabblePage({ params, searchParams }: PageProps) 
             />
           ) : (
             <>
-              {totalVotes > 0 && (
+              {showDeciderBanner && (
+                <div className="rounded-lg bg-foreground px-4 py-3 text-center text-sm font-semibold text-background">
+                  It&apos;s {voteCountA ?? 0}&ndash;{voteCountB ?? 0}. Your vote decides this.
+                </div>
+              )}
+              {isTooCloseToCall && !showDeciderBanner ? (
+                <p className="animate-pulse text-center text-sm font-medium text-foreground">
+                  Too close to call &mdash; every vote matters
+                </p>
+              ) : totalVotes > 0 && !showDeciderBanner ? (
                 <p className="text-muted-foreground text-center text-sm">
                   {totalVotes} {totalVotes === 1 ? "vote" : "votes"} so far
                 </p>
-              )}
+              ) : null}
               <VoteButtons
                 squabbleId={squabble.id}
                 sideA={squabble.side_a}
@@ -216,7 +230,7 @@ export default async function SquabblePage({ params, searchParams }: PageProps) 
 
           <ShareButton slug={slug} question={squabble.question} />
 
-          {isCreator && voters.length > 0 && (
+          {shouldShowVoters && voters.length > 0 && (
             <VoterBreakdown
               voters={voters}
               sideA={squabble.side_a}

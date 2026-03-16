@@ -129,6 +129,20 @@
 }
 
 /* ============================================================
+   SQUABBLE ANIMATIONS — Micro-interactions
+   ============================================================ */
+
+@keyframes vote-pop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+
+.animate-vote-pop {
+  animation: vote-pop 200ms ease-out;
+}
+
+/* ============================================================
    SQUABBLE THEMES — Animated squabble skins
    Three visual themes applied via CSS class on body
    ============================================================ */
