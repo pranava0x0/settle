@@ -32,7 +32,7 @@ export const VoteButtons = ({
 
   const handleVote = async (side: "a" | "b") => {
     if (!isLoggedIn) {
-      router.push(`/login?redirect=/s/${slug}`);
+      router.push(`/login?redirect=/s/${slug}&vote=${side}`);
       return;
     }
 

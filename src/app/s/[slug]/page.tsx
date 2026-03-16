@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isExpired } from "@/lib/utils";
 import { closeSquabble } from "@/lib/actions/squabbles";
+import { castVote } from "@/lib/actions/votes";
 import { APP_NAME } from "@/lib/constants";
 import {
   Card,
@@ -20,6 +21,7 @@ import { VoterBreakdown } from "@/components/voter-breakdown";
 
 type PageProps = {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -55,8 +57,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-export default async function SquabblePage({ params }: PageProps) {
+export default async function SquabblePage({ params, searchParams }: PageProps) {
   const { slug } = await params;
+  const resolvedSearchParams = await searchParams;
+  const voteSideParam = resolvedSearchParams.vote as string | undefined;
   const supabase = await createClient();
 
   // Fetch squabble
@@ -113,6 +117,18 @@ export default async function SquabblePage({ params }: PageProps) {
     if (vote) {
       userVote = vote.side as "a" | "b";
     }
+  }
+
+  // Auto-cast vote from login redirect (removes double-tap friction)
+  if (
+    user &&
+    !userVote &&
+    squabble.status === "open" &&
+    !isExpired(squabble.expires_at) &&
+    (voteSideParam === "a" || voteSideParam === "b")
+  ) {
+    await castVote({ squabble_id: squabble.id, side: voteSideParam });
+    redirect(`/s/${slug}`);
   }
 
   // Fetch voter breakdown for creator only
