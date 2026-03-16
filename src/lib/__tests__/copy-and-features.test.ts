@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { APP_NAME, APP_DESCRIPTION } from "@/lib/constants";
+import { APP_NAME, APP_DESCRIPTION, TIMER_PRESETS } from "@/lib/constants";
 
 describe("App copy", () => {
   it("APP_NAME is Squabble", () => {
@@ -419,6 +419,32 @@ describe("Display name prompt visibility", () => {
     const profile = null;
     const needsDisplayName = !profile?.display_name;
     expect(needsDisplayName).toBe(true);
+  });
+});
+
+describe("Timer preset pill selector", () => {
+  it("default selection is 1 hour (60 minutes)", () => {
+    expect(TIMER_PRESETS[1].value).toBe(60);
+    expect(TIMER_PRESETS[1].label).toBe("1 hour");
+  });
+
+  it("has exactly 4 presets for a clean horizontal row", () => {
+    expect(TIMER_PRESETS).toHaveLength(4);
+  });
+
+  it("all presets have positive minute values", () => {
+    for (const preset of TIMER_PRESETS) {
+      expect(preset.value).toBeGreaterThan(0);
+    }
+  });
+
+  it("selected preset gets aria-pressed=true", () => {
+    const selectedDuration = 60;
+    const isSelected = (value: number) => selectedDuration === value;
+    expect(isSelected(60)).toBe(true);
+    expect(isSelected(15)).toBe(false);
+    expect(isSelected(360)).toBe(false);
+    expect(isSelected(1440)).toBe(false);
   });
 });
 

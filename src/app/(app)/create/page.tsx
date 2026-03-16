@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,6 +14,7 @@ import {
 } from "@/components/ui/card";
 import { createSquabble } from "@/lib/actions/squabbles";
 import { TIMER_PRESETS } from "@/lib/constants";
+import { cn } from "@/lib/utils";
 
 const CreateSquabblePage = () => {
   const [error, setError] = useState("");
@@ -90,20 +92,28 @@ const CreateSquabblePage = () => {
 
             <div className="space-y-2">
               <Label>How long do they have?</Label>
-              <div className="grid grid-cols-2 gap-2">
-                {TIMER_PRESETS.map((preset) => (
-                  <Button
-                    key={preset.value}
-                    type="button"
-                    variant={
-                      selectedDuration === preset.value ? "default" : "outline"
-                    }
-                    onClick={() => setSelectedDuration(preset.value)}
-                    className="w-full"
-                  >
-                    {preset.label}
-                  </Button>
-                ))}
+              <div className="flex gap-2">
+                {TIMER_PRESETS.map((preset) => {
+                  const isSelected = selectedDuration === preset.value;
+                  return (
+                    <button
+                      key={preset.value}
+                      type="button"
+                      aria-pressed={isSelected}
+                      onClick={() => setSelectedDuration(preset.value)}
+                      className={cn(
+                        "flex flex-1 items-center justify-center gap-1 rounded-full px-3 py-2 text-sm font-medium transition-all",
+                        "border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                        isSelected
+                          ? "border-primary bg-primary/10 text-foreground font-semibold ring-2 ring-primary/20"
+                          : "border-border bg-background text-muted-foreground hover:bg-muted"
+                      )}
+                    >
+                      {isSelected && <Check className="h-3.5 w-3.5" />}
+                      {preset.label}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
