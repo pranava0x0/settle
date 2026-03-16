@@ -142,6 +142,16 @@
   animation: vote-pop 200ms ease-out;
 }
 
+@keyframes bar-fill {
+  from { width: 0%; }
+  to { width: var(--bar-width); }
+}
+
+.animate-bar-fill {
+  animation: bar-fill 600ms ease-out forwards;
+  width: var(--bar-width);
+}
+
 /* ============================================================
    SQUABBLE THEMES — Animated squabble skins
    Three visual themes applied via CSS class on body

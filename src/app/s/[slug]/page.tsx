@@ -224,6 +224,8 @@ export default async function SquabblePage({ params, searchParams }: PageProps) 
                   : userVote === "b" ? (voteCountB ?? 0)
                   : undefined
                 }
+                voteCountA={voteCountA ?? 0}
+                voteCountB={voteCountB ?? 0}
               />
             </>
           )}
