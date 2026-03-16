@@ -19,6 +19,7 @@ import { ShareButton } from "@/components/share-button";
 import { RealtimeVoteListener } from "@/components/realtime-vote-listener";
 import { VoterBreakdown } from "@/components/voter-breakdown";
 import { WinnerCelebration } from "@/components/winner-celebration";
+import { RematchButton } from "@/components/rematch-button";
 
 type PageProps = {
   params: Promise<{ slug: string }>;
@@ -242,6 +243,10 @@ export default async function SquabblePage({ params, searchParams }: PageProps) 
           )}
 
           <ShareButton slug={slug} question={squabble.question} />
+
+          {showResults && !!user && (
+            <RematchButton slug={slug} />
+          )}
 
           {shouldShowVoters && voters.length > 0 && (
             <VoterBreakdown

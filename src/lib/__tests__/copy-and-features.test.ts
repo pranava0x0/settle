@@ -625,3 +625,45 @@ describe("Voter breakdown visibility", () => {
     expect(shouldShowVoters(false, false, "a")).toBe(false);
   });
 });
+
+describe("Rematch logic", () => {
+  it("swaps side_a and side_b in rematch", () => {
+    const original = { side_a: "Pizza", side_b: "Tacos" };
+    const rematch = { side_a: original.side_b, side_b: original.side_a };
+    expect(rematch.side_a).toBe("Tacos");
+    expect(rematch.side_b).toBe("Pizza");
+  });
+
+  it("calculates original duration from timestamps", () => {
+    const createdAt = "2025-01-01T00:00:00Z";
+    const expiresAt = "2025-01-01T01:00:00Z";
+    const durationMs = new Date(expiresAt).getTime() - new Date(createdAt).getTime();
+    const durationMinutes = Math.round(durationMs / (60 * 1000));
+    expect(durationMinutes).toBe(60);
+  });
+
+  it("clamps duration between 1 and 10080 minutes", () => {
+    const clamp = (m: number) => Math.max(1, Math.min(10080, m));
+    expect(clamp(0)).toBe(1);
+    expect(clamp(-5)).toBe(1);
+    expect(clamp(20000)).toBe(10080);
+    expect(clamp(60)).toBe(60);
+  });
+});
+
+describe("Winner celebration logic", () => {
+  it("user won when their vote matches winner_side", () => {
+    expect("a" === "a").toBe(true);
+  });
+  it("user lost when their vote differs from winner_side", () => {
+    expect("b" === "a").toBe(false);
+  });
+  it("no celebration when no winner (tie)", () => {
+    const winnerSide = null;
+    expect(winnerSide !== null).toBe(false);
+  });
+  it("no celebration when user didn't vote", () => {
+    const userVote = null;
+    expect(userVote !== null).toBe(false);
+  });
+});

@@ -105,3 +105,49 @@ export async function closeSquabble(squabbleId: string) {
     console.error("closeSquabble update error:", updateError.message);
   }
 }
+
+export async function createRematch(originalSlug: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "You must be logged in to start a rematch." };
+  }
+
+  const { data: original, error: fetchError } = await supabase
+    .from("disputes")
+    .select("question, side_a, side_b, expires_at, created_at")
+    .eq("slug", originalSlug)
+    .single();
+
+  if (fetchError || !original) {
+    return { error: "Original squabble not found." };
+  }
+
+  // Infer original duration from timestamps
+  const originalDuration = Math.round(
+    (new Date(original.expires_at).getTime() - new Date(original.created_at).getTime()) / (60 * 1000),
+  );
+  const durationMinutes = Math.max(1, Math.min(10080, originalDuration));
+
+  const slug = generateSlug();
+  const expiresAt = getExpiresAt(durationMinutes);
+
+  const { error } = await supabase.from("disputes").insert({
+    slug,
+    creator_id: user.id,
+    question: original.question,
+    side_a: original.side_b, // Swapped
+    side_b: original.side_a, // Swapped
+    expires_at: expiresAt,
+  });
+
+  if (error) {
+    console.error("createRematch error:", error.message);
+    return { error: "Failed to create rematch. Please try again." };
+  }
+
+  redirect(ROUTES.SQUABBLE(slug));
+}
