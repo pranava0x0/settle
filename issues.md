@@ -185,3 +185,12 @@ Living bug and issue tracker. Log bugs as they're found, update when fixed.
 - **Status:** Fixed
 - **Fix:** Rewrote all user-facing copy across 11 files: landing page, create page, dashboard, dispute page, vote buttons, dispute card, dispute results, share button, countdown timer, login form, header, voter breakdown. Examples: "Create a Dispute" → "What do you want to settle?", "Side A" → "This side says...", "Winner: Pizza" → "Pizza wins — 7 to 3", "Share with friends" → "Text it to the group".
 - **Regression Test:** No
+
+### [ISSUE-020] All voters show as "Anonymous" in voter breakdown
+- **Date:** 2026-03-15
+- **Area:** voting
+- **Description:** The voter breakdown (creator-only view) shows "Anonymous" for all voters. The `display_name` field is null for every user who voted because the name prompt only appeared on the dashboard — a page voters never visit. Users go: shared link → login → vote → done. No name collection in the vote flow.
+- **Root Cause:** design flaw — `DisplayNamePrompt` component was only rendered on the dashboard page. The vote login flow (phone → OTP → redirect to squabble) never prompted for a display name.
+- **Status:** Fixed
+- **Fix:** Added an optional "What should we call you?" step to the login form that appears after OTP verification when the user is being redirected to a vote page (`isVoteRedirect`). Users can save a name or skip. Non-vote logins (to dashboard) skip this step entirely — the existing `DisplayNamePrompt` on the dashboard handles that case. Also added auto-cast vote after login redirect to reduce friction.
+- **Regression Test:** Yes — `copy-and-features.test.ts`: "Login form name step" describe block tests step transitions, skip behavior, and description copy. "Auto-cast vote after login redirect" describe block tests URL param storage, cast conditions, and edge cases.

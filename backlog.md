@@ -64,6 +64,31 @@ Prioritized by impact on viral growth, share flow, and core UX delight.
 - **Description:** After first login, prompt users to set a display name. Show names on votes and dispute cards instead of anonymous "1 vote". Makes the social experience feel personal — friends want to see who voted for what.
 - **Status:** done
 
+### Anonymous voting with lazy registration
+- **Date Added:** 2026-03-15
+- **Priority:** high
+- **Description:** Let users vote immediately without phone auth, then prompt to "lock in" their vote with a phone number. Biggest friction reducer for the share-to-vote funnel. Research findings:
+  - **Lazy registration pattern:** User taps vote → vote cast immediately (stored with session cookie) → prompt: "Lock in your vote with your number" → phone OTP → vote permanently associated with account. Without registration, cookie-based vote persists for browser session.
+  - **Deduplication layers:** Cookie (primary) → browser fingerprint via FingerprintJS (secondary, ~99.5% accuracy) → IP + user-agent rate limiting (tertiary).
+  - **Framing:** "Lock in your vote" not "Create an account." Frame phone auth as protecting their existing action, not a gate.
+  - **Migration path:** Cookie-votes table with `session_id` column. On registration, merge into authenticated vote. Delete orphaned cookie-votes after squabble closes.
+  - **Trade-offs:** More complex dedup logic, possible Sybil attacks on high-stakes votes, harder to show real names for anonymous voters.
+  - **Recommendation:** Implement after core UX is polished. Start with cookie-only dedup. Add fingerprinting if fraud becomes measurable.
+  - Would reduce new-user vote flow from 5 to 2-3 interactions.
+- **Status:** backlog
+
+### Reduce new-user vote flow from 5 to 3 interactions
+- **Date Added:** 2026-03-15
+- **Priority:** high
+- **Description:** Current new-user vote flow requires 5 interactions (open link → tap vote → type phone → send code → type OTP, with auto-cast on redirect). Target: 3 interactions via lazy registration (open link → tap vote → optional phone lock-in). Blocked by anonymous voting implementation above.
+- **Status:** backlog
+
+### Auto-cast vote after login redirect
+- **Date Added:** 2026-03-15
+- **Priority:** high
+- **Description:** When an unauthenticated user taps a vote button, store the intended side in the redirect URL (?vote=a/b). After login, auto-cast the vote server-side and redirect to a clean URL. Eliminates the double-tap friction where users had to vote again after authenticating.
+- **Status:** done
+
 ---
 
 ## MEDIUM priority
@@ -90,7 +115,8 @@ Prioritized by impact on viral growth, share flow, and core UX delight.
 - **Date Added:** 2026-03-11
 - **Priority:** medium
 - **Description:** If vote count is exactly tied, a full-width high-contrast banner appears: "It's [N]–[N]. Your vote decides this." The next voter is literally the tiebreaker — highest possible sense of individual consequence. Disappears once anyone votes.
-- **Status:** backlog
+- **Implementation notes (2026-03-15):** In `src/app/s/[slug]/page.tsx`, add condition: if `voteCountA === voteCountB && voteCountA > 0 && !userVote && !showResults`, render a high-contrast banner above VoteButtons. ~5 lines in page component. No new components needed.
+- **Status:** ready
 
 ### "Side B is gaining" live page alert
 - **Date Added:** 2026-03-11
@@ -121,6 +147,12 @@ Prioritized by impact on viral growth, share flow, and core UX delight.
 - **Priority:** medium
 - **Description:** When a dispute closes, push the creator: "The jury is in — [winning side] wins [X]–[Y]. Tap to see receipts." No push to voters by default (reduce fatigue). Creator is most invested and most likely to share the result.
 - **Status:** backlog
+
+### Eliminate double-vote-tap after login redirect
+- **Date Added:** 2026-03-15
+- **Priority:** medium
+- **Description:** When an unauthenticated user taps a vote button, they get redirected to login, then back to the squabble page where they had to tap the vote button again. The intended vote side is now stored in a URL param (`?vote=a/b`) and auto-cast server-side after redirect. Saves 1 interaction for new users.
+- **Status:** done
 
 ### Dispute history on public page (who voted what)
 - **Date Added:** 2026-03-11
@@ -160,7 +192,8 @@ Prioritized by impact on viral growth, share flow, and core UX delight.
 - **Date Added:** 2026-03-11
 - **Priority:** low
 - **Description:** When tapping a vote button: spring animation (scale up then settle), background flashes side's color for 200ms, medium haptic tap. Makes casting a vote feel decisive and satisfying — like pressing a real button. Keep total animation under 300ms.
-- **Status:** backlog
+- **Implementation notes (2026-03-15):** In `src/components/vote-buttons.tsx`, after `castVote` succeeds, add `if (navigator.vibrate) navigator.vibrate(50);` for haptic. For spring animation, add CSS keyframes `vote-pop` (scale 1→1.08→1, 200ms ease-out) applied via a brief state toggle on the clicked button. ~15 lines total, no dependencies.
+- **Status:** ready
 
 ### "X people watching" live viewer count
 - **Date Added:** 2026-03-11
