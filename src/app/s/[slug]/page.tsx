@@ -20,6 +20,7 @@ import { RealtimeVoteListener } from "@/components/realtime-vote-listener";
 import { VoterBreakdown } from "@/components/voter-breakdown";
 import { WinnerCelebration } from "@/components/winner-celebration";
 import { RematchButton } from "@/components/rematch-button";
+import { ShareResultButton } from "@/components/share-result-button";
 
 type PageProps = {
   params: Promise<{ slug: string }>;
@@ -32,7 +33,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const { data: squabble } = await supabase
     .from("disputes")
-    .select("question, side_a, side_b")
+    .select("question, side_a, side_b, status")
     .eq("slug", slug)
     .single();
 
@@ -41,6 +42,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 
   const description = `${squabble.side_a} vs ${squabble.side_b} — cast your vote!`;
+  const ogImage =
+    squabble.status !== "open"
+      ? { url: `/api/og/result/${slug}`, width: 1200, height: 630 }
+      : undefined;
 
   return {
     title: `${squabble.question} | ${APP_NAME}`,
@@ -50,6 +55,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       description,
       siteName: APP_NAME,
       type: "website",
+      ...(ogImage && { images: [ogImage] }),
     },
     twitter: {
       card: "summary_large_image",
@@ -242,7 +248,11 @@ export default async function SquabblePage({ params, searchParams }: PageProps) 
             </>
           )}
 
-          <ShareButton slug={slug} question={squabble.question} />
+          {showResults ? (
+            <ShareResultButton slug={slug} />
+          ) : (
+            <ShareButton slug={slug} question={squabble.question} />
+          )}
 
           {showResults && !!user && (
             <RematchButton slug={slug} />
