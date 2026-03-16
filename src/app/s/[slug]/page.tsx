@@ -18,6 +18,7 @@ import { SquabbleResults } from "@/components/squabble-results";
 import { ShareButton } from "@/components/share-button";
 import { RealtimeVoteListener } from "@/components/realtime-vote-listener";
 import { VoterBreakdown } from "@/components/voter-breakdown";
+import { WinnerCelebration } from "@/components/winner-celebration";
 
 type PageProps = {
   params: Promise<{ slug: string }>;
@@ -187,14 +188,24 @@ export default async function SquabblePage({ params, searchParams }: PageProps) 
         </CardHeader>
         <CardContent className="space-y-6">
           {showResults ? (
-            <SquabbleResults
-              sideA={squabble.side_a}
-              sideB={squabble.side_b}
-              voteCountA={voteCountA ?? 0}
-              voteCountB={voteCountB ?? 0}
-              winnerSide={squabble.winner_side as "a" | "b" | null}
-              status={squabble.status}
-            />
+            <>
+              <SquabbleResults
+                sideA={squabble.side_a}
+                sideB={squabble.side_b}
+                voteCountA={voteCountA ?? 0}
+                voteCountB={voteCountB ?? 0}
+                winnerSide={squabble.winner_side as "a" | "b" | null}
+                status={squabble.status}
+              />
+              {userVote && squabble.winner_side && (
+                <WinnerCelebration
+                  userWon={userVote === squabble.winner_side}
+                  winnerSide={squabble.winner_side as "a" | "b"}
+                  sideA={squabble.side_a}
+                  sideB={squabble.side_b}
+                />
+              )}
+            </>
           ) : (
             <>
               {showDeciderBanner && (
