@@ -109,10 +109,12 @@ export default async function SquabblePage({ params, searchParams }: PageProps) 
     .eq("dispute_id", squabble.id)
     .eq("side", "b");
 
-  // Check current user's vote
+  // Check current user's vote and anonymous status
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  const isAnonymous = user?.is_anonymous ?? false;
 
   let userVote: "a" | "b" | null = null;
   if (user) {
@@ -236,6 +238,7 @@ export default async function SquabblePage({ params, searchParams }: PageProps) 
                 userVote={userVote}
                 isExpired={expired}
                 isLoggedIn={!!user}
+                isAnonymous={isAnonymous}
                 slug={slug}
                 voteCountForUserSide={
                   userVote === "a" ? (voteCountA ?? 0)

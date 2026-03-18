@@ -16,6 +16,16 @@ Prioritized by impact on viral growth, share flow, and core UX delight.
 
 ## HIGH priority
 
+### Setup: Enable anonymous voting prerequisites
+- **Date Added:** 2026-03-18
+- **Priority:** high
+- **Description:** The anonymous voting feature (vote without login) is implemented but needs three setup steps before it works end-to-end:
+  1. **Enable anonymous sign-ins** in Supabase Dashboard → Auth → Settings → toggle "Enable Anonymous Sign-Ins"
+  2. **Add `SUPABASE_SERVICE_ROLE_KEY`** to `.env.local` (get from Supabase Dashboard → Settings → API → service_role key). Needed for vote merging when anonymous users verify with phone.
+  3. **Run migration `00003_anonymous_voting.sql`** on Supabase (makes `phone` nullable in users table for anonymous profiles)
+  After setup, test: create a squabble → open in incognito → tap vote → should vote instantly without login → see name prompt + optional phone verify.
+- **Status:** backlog
+
 ### Fix vote button visual hierarchy — distinguish from utility buttons
 - **Date Added:** 2026-03-18
 - **Priority:** high
