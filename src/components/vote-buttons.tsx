@@ -3,8 +3,10 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { castVote } from "@/lib/actions/votes";
+import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { PostVotePrompt } from "@/components/post-vote-prompt";
 
 type VoteButtonsProps = {
   squabbleId: string;
@@ -13,6 +15,7 @@ type VoteButtonsProps = {
   userVote?: "a" | "b" | null;
   isExpired: boolean;
   isLoggedIn: boolean;
+  isAnonymous: boolean;
   slug: string;
   voteCountForUserSide?: number;
   voteCountA: number;
@@ -26,6 +29,7 @@ export const VoteButtons = ({
   userVote,
   isExpired,
   isLoggedIn,
+  isAnonymous,
   slug,
   voteCountForUserSide,
   voteCountA,
@@ -35,15 +39,23 @@ export const VoteButtons = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [votedSide, setVotedSide] = useState<"a" | "b" | null>(null);
+  const [showIdentityPrompt, setShowIdentityPrompt] = useState(false);
 
   const handleVote = async (side: "a" | "b") => {
-    if (!isLoggedIn) {
-      router.push(`/login?redirect=/s/${slug}&vote=${side}`);
-      return;
-    }
-
     setError("");
     setLoading(true);
+
+    // If not logged in at all, sign in anonymously first
+    if (!isLoggedIn) {
+      const supabase = createClient();
+      const { error: anonError } = await supabase.auth.signInAnonymously();
+      if (anonError) {
+        console.error("Anonymous sign-in error:", anonError.message);
+        setError("Something went wrong. Please try again.");
+        setLoading(false);
+        return;
+      }
+    }
 
     const result = await castVote({ squabble_id: squabbleId, side });
     setLoading(false);
@@ -53,12 +65,36 @@ export const VoteButtons = ({
     } else {
       navigator.vibrate?.(50);
       setVotedSide(side);
+      // Show identity prompt for anonymous users (not logged in before voting)
+      if (!isLoggedIn) {
+        setShowIdentityPrompt(true);
+      }
       router.refresh();
     }
   };
 
   if (isExpired) {
     return null;
+  }
+
+  // Show post-vote identity prompt for anonymous voters
+  if (showIdentityPrompt) {
+    return (
+      <div className="space-y-3">
+        <p className="text-muted-foreground text-center text-sm">
+          Vote recorded for{" "}
+          <span className="font-semibold">
+            {votedSide === "a" ? sideA : sideB}
+          </span>
+        </p>
+        <PostVotePrompt
+          onDone={() => {
+            setShowIdentityPrompt(false);
+            router.refresh();
+          }}
+        />
+      </div>
+    );
   }
 
   if (userVote) {
@@ -104,6 +140,11 @@ export const VoteButtons = ({
             </div>
           </div>
         </div>
+        {isAnonymous && (
+          <PostVotePrompt
+            onDone={() => router.refresh()}
+          />
+        )}
       </div>
     );
   }
@@ -134,15 +175,9 @@ export const VoteButtons = ({
           {sideB}
         </Button>
       </div>
-      {isLoggedIn ? (
-        <p className="text-muted-foreground text-center text-xs">
-          Vote to see where things stand
-        </p>
-      ) : (
-        <p className="text-muted-foreground text-center text-xs">
-          Tap a side to vote
-        </p>
-      )}
+      <p className="text-muted-foreground text-center text-xs">
+        Tap a side to vote
+      </p>
       {error && <p className="text-center text-sm text-red-500">{error}</p>}
     </div>
   );

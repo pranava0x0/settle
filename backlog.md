@@ -16,6 +16,16 @@ Prioritized by impact on viral growth, share flow, and core UX delight.
 
 ## HIGH priority
 
+### Fix vote button visual hierarchy — distinguish from utility buttons
+- **Date Added:** 2026-03-18
+- **Priority:** high
+- **Description:** Vote buttons (Side A / Side B) use `variant="outline"` — the exact same style as secondary utility buttons like "Copy link", "Rematch", and "Share the result". Nothing on the page looks like a primary action. Problems by context:
+  - **Live voting page:** Vote buttons should be the dominant CTA but blend in with every other outline button. They should have strong, distinct styling (e.g., `variant="default"` for both, or contrasting fills for Side A vs Side B) so the hierarchy is immediately obvious.
+  - **Closed page:** "Share the result" + download + Rematch are all `outline` with no primary tier. "Share the result" should be elevated to `variant="default"` as the primary post-result CTA.
+  - **Post-vote state:** The vote-cast view already shows bars (no buttons), so no change needed there.
+  - Fix: Give vote buttons solid/filled style to make them unmistakably the primary action. Consider two-color approach (e.g., blue for Side A, orange/red for Side B) to make the sides feel like real opposing choices. Elevate "Share the result" to default on the closed page.
+- **Status:** backlog
+
 ### Dispute-first onboarding (show before login wall)
 - **Date Added:** 2026-03-11
 - **Priority:** high
