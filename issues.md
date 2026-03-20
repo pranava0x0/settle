@@ -2,13 +2,21 @@
 
 Living bug and issue tracker. Log bugs as they're found, update when fixed.
 
+> **Running a bug-finding pass?** Use the `/uat` skill (see `.claude/skills/uat/SKILL.md`).
+> It tests all personas and flows end-to-end and logs findings here automatically.
+> Run modes: short (~2 min), medium (~5 min), long (~10 min).
+
 ## Format
 ```
 ### [ISSUE-NNN] Brief title
-- **Date:** YYYY-MM-DD
-- **Area:** (auth | disputes | voting | timer | dashboard | ui | infra)
+- **Date:** YYYY-MM-DD HH:MM
+- **Area:** (auth | squabbles | voting | timer | dashboard | ui | infra | theme | mobile)
+- **Persona:** (Creator | Anonymous Viewer | New Voter | Returning Voter | Results Viewer | Dashboard User | Theme Switcher | Mobile User)
 - **Description:** What's broken
-- **Root Cause:** (code bug | test bug | config | design flaw)
+- **Steps to Reproduce:** 1. Go to... 2. Click... 3. See...
+- **Complexity:** (low | medium | high)
+- **Priority:** (low | medium | high | critical)
+- **Root Cause:** (code bug | test bug | config | design flaw | unknown)
 - **Status:** Open | Fixed
 - **Fix:** What was changed (include commit hash)
 - **Regression Test:** Yes/No — link to test if added
@@ -194,3 +202,42 @@ Living bug and issue tracker. Log bugs as they're found, update when fixed.
 - **Status:** Fixed
 - **Fix:** Added an optional "What should we call you?" step to the login form that appears after OTP verification when the user is being redirected to a vote page (`isVoteRedirect`). Users can save a name or skip. Non-vote logins (to dashboard) skip this step entirely — the existing `DisplayNamePrompt` on the dashboard handles that case. Also added auto-cast vote after login redirect to reduce friction.
 - **Regression Test:** Yes — `copy-and-features.test.ts`: "Login form name step" describe block tests step transitions, skip behavior, and description copy. "Auto-cast vote after login redirect" describe block tests URL param storage, cast conditions, and edge cases.
+
+### [ISSUE-021] "LIVE" badge shown on expired squabbles — lazy close silently blocked by RLS
+- **Date:** 2026-03-19 14:00
+- **Area:** squabbles
+- **Persona:** Anonymous Viewer
+- **Description:** All expired squabbles with `status: "open"` in the DB show a "LIVE" badge alongside the results view (vote bars, "Share the result" button, no vote buttons). The lazy close mechanism in `SquabblePage` calls `closeSquabble()` which tries to UPDATE the dispute row, but the RLS policy `"Creator can update own disputes"` (`auth.uid() = creator_id`) blocks non-creator/anonymous sessions. The UPDATE silently returns 0 rows (no error thrown), the DB status stays "open", but `isExpired()` returns true → `showResults = true`. The page is stuck in a mixed state: badge says "LIVE", content shows results. Affects 100% of expired squabbles visited by non-creators.
+- **Steps to Reproduce:** 1. Let a squabble's timer expire. 2. Visit `/s/{slug}` while not logged in or not the creator. 3. See "LIVE" badge with results view below it.
+- **Complexity:** medium — requires using service role key in `closeSquabble()` for the UPDATE, or adding an RLS policy for timed-out disputes.
+- **Priority:** critical — "LIVE" badge on closed squabbles is factually wrong; every expired squabble shows this for non-creator visitors.
+- **Root Cause:** code bug — `closeSquabble()` uses the regular anon Supabase client; RLS blocks the UPDATE for non-creator sessions; no error surfaced.
+- **Status:** Fixed
+- **Fix:** Switched `closeSquabble()` to use the admin client (`createAdminClient()`) which bypasses RLS. Safe because: (1) only runs server-side, (2) only updates when `status === "open" && isExpired()`, (3) only writes computed fields (`status`, `winner_side`, `closed_at`).
+- **Regression Test:** No — requires expired squabble visited by non-creator to verify.
+
+### [ISSUE-022] Invalid squabble slug shows stock Next.js 404 — no custom error page
+- **Date:** 2026-03-19 14:00
+- **Area:** ui
+- **Persona:** Anonymous Viewer
+- **Description:** Navigating to `/s/nonexistentslug` (or any invalid slug) shows the default Next.js 404 page with a plain black background that ignores the active theme. No friendly copy, no "Go home" button, and the theme doesn't apply (body class not set until JS hydrates, but the 404 page has no `ThemeToggle`). Users who receive a broken link have no recovery path.
+- **Steps to Reproduce:** 1. Navigate to `/s/doesnotexist`. 2. See black background + stock "404 / This page could not be found." with no theming or navigation.
+- **Complexity:** low — add a `not-found.tsx` in `src/app/s/[slug]/` with friendly copy and a link back to `/`.
+- **Priority:** medium — broken links are common (typos, expired shares); users deserve a friendly fallback.
+- **Root Cause:** code bug — no custom `not-found.tsx` file in the `[slug]` route; `notFound()` falls through to Next.js default.
+- **Status:** Fixed
+- **Fix:** Added `src/app/s/[slug]/not-found.tsx` with themed card, friendly copy ("Squabble not found"), and a "Back to Squabble" link.
+- **Regression Test:** No
+
+### [ISSUE-023] Rematch button visible to all logged-in users, not just creator
+- **Date:** 2026-03-19 14:00
+- **Area:** squabbles
+- **Persona:** Results Viewer
+- **Description:** The Rematch button on closed squabble pages is shown to any logged-in user (`showResults && !!user`), not just the squabble creator. `createRematch()` also doesn't check creator ownership — any user can create a rematch of any squabble. This may or may not be intentional, but it means participants (not just the creator) can spawn new squabbles on behalf of others.
+- **Steps to Reproduce:** 1. Log in as a non-creator user. 2. Navigate to a closed squabble. 3. See the Rematch button.
+- **Complexity:** low — add `isCreator` check to the Rematch button render condition and in `createRematch()` action.
+- **Priority:** low — functional side-effect, not a crash; rematches are harmless but may surprise creators.
+- **Root Cause:** design flaw — creator check missing from both UI condition and server action.
+- **Status:** Fixed
+- **Fix:** Changed UI condition from `showResults && !!user` to `showResults && isCreator`. Added `creator_id` to the `createRematch` SELECT query and a server-side ownership check that returns an error for non-creators.
+- **Regression Test:** No

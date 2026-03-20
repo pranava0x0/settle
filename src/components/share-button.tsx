@@ -40,7 +40,7 @@ export const ShareButton = ({ slug, question }: ShareButtonProps) => {
 
   return (
     <div className="flex gap-2">
-      <Button className="flex-1" onClick={handleTextIt}>
+      <Button variant="secondary" className="flex-1" onClick={handleTextIt}>
         Text it to the group
       </Button>
       <Button variant="outline" onClick={handleCopy}>

@@ -257,7 +257,7 @@ export default async function SquabblePage({ params, searchParams }: PageProps) 
             <ShareButton slug={slug} question={squabble.question} />
           )}
 
-          {showResults && !!user && (
+          {showResults && isCreator && (
             <RematchButton slug={slug} />
           )}
 

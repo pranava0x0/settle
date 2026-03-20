@@ -45,14 +45,14 @@ export const VoteButtons = ({
     setError("");
     setLoading(true);
 
-    // If not logged in at all, sign in anonymously first
+    // If not logged in at all, try anonymous sign-in; fall back to login page
     if (!isLoggedIn) {
       const supabase = createClient();
       const { error: anonError } = await supabase.auth.signInAnonymously();
       if (anonError) {
         console.error("Anonymous sign-in error:", anonError.message);
-        setError("Something went wrong. Please try again.");
-        setLoading(false);
+        // Redirect to login with vote intent preserved so they can vote after auth
+        router.push(`/login?redirect=/s/${slug}&vote=${side}`);
         return;
       }
     }

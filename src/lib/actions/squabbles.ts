@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createSquabbleSchema } from "@/lib/validations";
 import { generateSlug, getExpiresAt, isExpired } from "@/lib/utils";
 import { redirect } from "next/navigation";
@@ -43,10 +44,18 @@ export async function createSquabble(input: CreateSquabbleInput) {
 }
 
 export async function closeSquabble(squabbleId: string) {
-  const supabase = await createClient();
+  // Use admin client to bypass RLS — lazy close can be triggered by any visitor,
+  // not just the creator, so the anon client's "creator can update" policy blocks it.
+  // Fall back to regular client if service role key isn't configured (e.g. local dev).
+  let db;
+  try {
+    db = createAdminClient();
+  } catch {
+    db = await createClient();
+  }
 
   // Get the squabble
-  const { data: squabble, error: fetchError } = await supabase
+  const { data: squabble, error: fetchError } = await db
     .from("disputes")
     .select("*")
     .eq("id", squabbleId)
@@ -62,13 +71,13 @@ export async function closeSquabble(squabbleId: string) {
   }
 
   // Count votes for each side
-  const { count: countA } = await supabase
+  const { count: countA } = await db
     .from("votes")
     .select("*", { count: "exact", head: true })
     .eq("dispute_id", squabbleId)
     .eq("side", "a");
 
-  const { count: countB } = await supabase
+  const { count: countB } = await db
     .from("votes")
     .select("*", { count: "exact", head: true })
     .eq("dispute_id", squabbleId)
@@ -92,7 +101,7 @@ export async function closeSquabble(squabbleId: string) {
     winnerSide = votesA > votesB ? "a" : "b";
   }
 
-  const { error: updateError } = await supabase
+  const { error: updateError } = await db
     .from("disputes")
     .update({
       status,
@@ -118,12 +127,16 @@ export async function createRematch(originalSlug: string) {
 
   const { data: original, error: fetchError } = await supabase
     .from("disputes")
-    .select("question, side_a, side_b, expires_at, created_at")
+    .select("question, side_a, side_b, expires_at, created_at, creator_id")
     .eq("slug", originalSlug)
     .single();
 
   if (fetchError || !original) {
     return { error: "Original squabble not found." };
+  }
+
+  if (original.creator_id !== user.id) {
+    return { error: "Only the creator can start a rematch." };
   }
 
   // Infer original duration from timestamps

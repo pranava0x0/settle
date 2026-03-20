@@ -138,6 +138,7 @@ SUPABASE_SERVICE_ROLE_KEY=
 
 - **Vitest** for unit + integration tests (server actions, utils, validation).
 - **Playwright** for e2e tests (full user flows, mobile viewports).
+- **UAT skill** (`/uat`) for full end-to-end QA passes across all personas and flows — run before major releases or after significant feature changes. See `.claude/skills/uat/SKILL.md` for the full testing protocol (short=2min, medium=5min, long=10min modes).
 - Write tests alongside code, not as an afterthought. Every feature task includes its tests.
 - Write a regression test for every bug fix.
 - Cover edge cases, not just happy paths:
