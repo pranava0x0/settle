@@ -45,31 +45,35 @@ export const VoteButtons = ({
     setError("");
     setLoading(true);
 
-    // If not logged in at all, try anonymous sign-in; fall back to login page
+    // If not logged in at all, try anonymous sign-in then redirect with vote param
+    // so the server-side auto-cast logic handles it (avoids cookie sync race condition)
     if (!isLoggedIn) {
       const supabase = createClient();
       const { error: anonError } = await supabase.auth.signInAnonymously();
       if (anonError) {
         console.error("Anonymous sign-in error:", anonError.message);
-        // Redirect to login with vote intent preserved so they can vote after auth
         router.push(`/login?redirect=/s/${slug}&vote=${side}`);
         return;
       }
+      // Redirect to let server-side auto-cast handle the vote with fresh cookies
+      router.push(`/s/${slug}?vote=${side}`);
+      return;
     }
 
-    const result = await castVote({ squabble_id: squabbleId, side });
-    setLoading(false);
+    try {
+      const result = await castVote({ squabble_id: squabbleId, side });
+      setLoading(false);
 
-    if (result.error) {
-      setError(result.error);
-    } else {
-      navigator.vibrate?.(50);
-      setVotedSide(side);
-      // Show identity prompt for anonymous users (not logged in before voting)
-      if (!isLoggedIn) {
-        setShowIdentityPrompt(true);
+      if (result.error) {
+        setError(result.error);
+      } else {
+        navigator.vibrate?.(50);
+        setVotedSide(side);
+        router.refresh();
       }
-      router.refresh();
+    } catch {
+      setLoading(false);
+      setError("Failed to cast vote. Please try again.");
     }
   };
 
