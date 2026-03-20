@@ -40,6 +40,7 @@ export const VoteButtons = ({
   const [error, setError] = useState("");
   const [votedSide, setVotedSide] = useState<"a" | "b" | null>(null);
   const [showIdentityPrompt, setShowIdentityPrompt] = useState(false);
+  const [promptDismissed, setPromptDismissed] = useState(false);
 
   const handleVote = async (side: "a" | "b") => {
     setError("");
@@ -146,9 +147,12 @@ export const VoteButtons = ({
             </div>
           </div>
         </div>
-        {isAnonymous && (
+        {isAnonymous && !promptDismissed && (
           <PostVotePrompt
-            onDone={() => router.refresh()}
+            onDone={() => {
+              setPromptDismissed(true);
+              router.refresh();
+            }}
           />
         )}
       </div>
