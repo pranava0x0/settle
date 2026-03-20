@@ -3,7 +3,6 @@ import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isExpired } from "@/lib/utils";
 import { closeSquabble } from "@/lib/actions/squabbles";
-import { castVote } from "@/lib/actions/votes";
 import { APP_NAME } from "@/lib/constants";
 import {
   Card,
@@ -129,7 +128,9 @@ export default async function SquabblePage({ params, searchParams }: PageProps) 
     }
   }
 
-  // Auto-cast vote from login redirect (removes double-tap friction)
+  // Auto-cast vote from anonymous sign-in redirect (removes double-tap friction)
+  // Insert directly instead of calling castVote server action to avoid
+  // revalidatePath during render (not allowed in Next.js 16)
   if (
     user &&
     !userVote &&
@@ -137,7 +138,11 @@ export default async function SquabblePage({ params, searchParams }: PageProps) 
     !isExpired(squabble.expires_at) &&
     (voteSideParam === "a" || voteSideParam === "b")
   ) {
-    await castVote({ squabble_id: squabble.id, side: voteSideParam });
+    await supabase.from("votes").insert({
+      dispute_id: squabble.id,
+      user_id: user.id,
+      side: voteSideParam,
+    });
     redirect(`/s/${slug}`);
   }
 

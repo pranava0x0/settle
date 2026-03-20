@@ -255,6 +255,32 @@ Living bug and issue tracker. Log bugs as they're found, update when fixed.
 
 - **Fix:** Encoded vote into redirect URL path: `router.push(\`/login?redirect=\${encodeURIComponent(\`/s/\${slug}?vote=\${side}\`)}\`)`. LoginForm reads `searchParams.get("redirect")` which now returns `/s/{slug}?vote={side}`, preserving vote intent through the full auth flow.
 - **Regression Test:** No
+### [ISSUE-027] Anonymous voting fails — "Database error creating anonymous user"
+- **Date:** 2026-03-20 04:00
+- **Area:** voting | auth
+- **Persona:** New Voter
+- **Description:** Clicking a vote button as an unauthenticated user triggers `signInAnonymously()` which fails with "Database error creating anonymous user". Three root causes: (1) Migration `00003` (making `public.users.phone` nullable) was never applied to production — column was still `NOT NULL`, so the `handle_new_user` trigger failed inserting anonymous users with `phone = NULL`. (2) The trigger itself used `NEW.phone` directly, but Supabase sets `phone = ''` (empty string) for anonymous users — causing unique constraint violations if multiple anonymous users signed up. (3) The error was silently redirected to the OTP login page instead of being shown to the user.
+- **Steps to Reproduce:** 1. Visit `/s/{slug}` while logged out. 2. Click a vote button. 3. See redirect to login page (before fix) or "Anonymous sign-in failed" error (after partial fix).
+- **Complexity:** medium — required DB migration, trigger fix, and code changes.
+- **Priority:** critical — anonymous voting was completely broken for all users.
+- **Root Cause:** config + code bug — missing DB migration + trigger not handling empty phone strings + silent error redirect.
+- **Status:** Fixed
+- **Fix:** (1) Applied `ALTER TABLE public.users ALTER COLUMN phone DROP NOT NULL` in production. (2) Updated `handle_new_user` trigger to use `NULLIF(NEW.phone, '')` (migration `00004`). (3) Changed `vote-buttons.tsx` to show error on-screen instead of silently redirecting to login. (4) Changed `vote-buttons.tsx` to use `window.location.href` instead of `router.push` for hard navigation after anonymous sign-in (ensures cookie sync).
+- **Regression Test:** No — manual test confirms anonymous vote flow works end-to-end.
+
+### [ISSUE-028] revalidatePath during render crashes auto-cast vote on anonymous redirect
+- **Date:** 2026-03-20 04:00
+- **Area:** voting
+- **Persona:** New Voter
+- **Description:** After anonymous sign-in succeeds and redirects to `/s/{slug}?vote=a`, the server component calls `castVote()` during render to auto-cast. `castVote()` calls `revalidatePath()` which is not allowed during render in Next.js 16, causing a 500 error: "Route /s/[slug] used 'revalidatePath' during render which is unsupported." Same class of bug as ISSUE-010.
+- **Steps to Reproduce:** 1. Click vote as anonymous user. 2. Anonymous sign-in succeeds, redirects to `/s/{slug}?vote=a`. 3. Server-side auto-cast calls `castVote()` → crashes on `revalidatePath`.
+- **Complexity:** low — replace `castVote()` with direct DB insert in the auto-cast path.
+- **Priority:** critical — blocks the entire anonymous voting flow after sign-in succeeds.
+- **Root Cause:** code bug — `castVote()` server action called during render, which includes `revalidatePath()`.
+- **Status:** Fixed
+- **Fix:** Replaced `castVote()` call in `page.tsx` auto-cast path with a direct `supabase.from("votes").insert()` — avoids the `revalidatePath` call during render. The `redirect()` on the next line already triggers a fresh page load.
+- **Regression Test:** No — manual test confirms anonymous vote auto-cast works.
+
 ### [ISSUE-025] Download button on results page has no accessible label
 - **Date:** 2026-03-20 04:00
 - **Area:** ui
