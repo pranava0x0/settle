@@ -241,3 +241,38 @@ Living bug and issue tracker. Log bugs as they're found, update when fixed.
 - **Status:** Fixed
 - **Fix:** Changed UI condition from `showResults && !!user` to `showResults && isCreator`. Added `creator_id` to the `createRematch` SELECT query and a server-side ownership check that returns an error for non-creators.
 - **Regression Test:** No
+
+### [ISSUE-024] Vote intent lost after OTP login when anonymous sign-in fails
+- **Date:** 2026-03-20 04:00
+- **Area:** voting | auth
+- **Persona:** New Voter
+- **Description:** When an anonymous sign-in fails during a vote attempt, `vote-buttons.tsx` redirects to `/login?redirect=/s/{slug}&vote={side}`. However, the login form reads only `searchParams.get("redirect")` which gives `/s/{slug}` — stripping the `vote` param. After OTP login completes, `router.push(redirectTo)` navigates to `/s/{slug}` without `?vote={side}`, so the server-side auto-cast never fires and the user's vote is silently dropped.
+- **Steps to Reproduce:** 1. Visit a squabble page while logged out. 2. Click a vote button. 3. Anonymous sign-in fails (e.g. anon auth disabled), redirecting to `/login?redirect=/s/k9_9n8gz&vote=b`. 4. Complete OTP login. 5. Land on squabble page — vote bars empty, vote was NOT auto-cast.
+- **Complexity:** low — encode the vote param into the redirect path itself: `/login?redirect=/s/{slug}?vote={side}` (URL-encoded), or read `vote` from searchParams in the login form and append it to the redirectTo.
+- **Priority:** high — vote intent is silently dropped; users who just went through the login flow expect their vote to be recorded.
+- **Root Cause:** code bug — `vote` param is passed as a sibling URL param to `redirect`, not embedded within the redirect URL. `LoginForm` only reads `redirect`, discarding `vote`.
+- **Status:** Fixed
+
+- **Fix:** Encoded vote into redirect URL path: `router.push(\`/login?redirect=\${encodeURIComponent(\`/s/\${slug}?vote=\${side}\`)}\`)`. LoginForm reads `searchParams.get("redirect")` which now returns `/s/{slug}?vote={side}`, preserving vote intent through the full auth flow.
+- **Regression Test:** No
+### [ISSUE-025] Download button on results page has no accessible label
+- **Date:** 2026-03-20 04:00
+- **Area:** ui
+- **Persona:** Results Viewer
+- **Description:** The Download image button in `ShareResultButton` renders as an icon-only button with no `aria-label`, `title`, or visible text. Screen readers will announce it as an unlabeled button. Assistive technology users cannot identify its purpose.
+- **Steps to Reproduce:** 1. Navigate to a closed squabble (e.g. `/s/wep15NPM`). 2. Inspect the Download button next to "Share the result" — no accessible name.
+- **Complexity:** low — add `aria-label="Download result image"` to the Button element in `share-result-button.tsx`.
+- **Priority:** low — accessibility issue; visual users understand from context and icon shape.
+- **Root Cause:** code bug — icon-only button missing accessible label.
+- **Status:** Open
+
+### [ISSUE-026] Impact theme: low-contrast badges, buttons, and winner banner
+- **Date:** 2026-03-20 04:00
+- **Area:** theme
+- **Persona:** Theme Switcher
+- **Description:** In the Impact ☄️ theme, the "Decided" badge, winner announcement banner, and "Log in" / CTA buttons render in a muted olive/sage color against a dark navy background. The contrast ratio is insufficient — elements appear nearly invisible. Affects all accent-colored UI across the theme.
+- **Steps to Reproduce:** 1. Switch to Impact ☄️ theme via header. 2. Navigate to a closed squabble (e.g. `/s/wep15NPM`). 3. Observe the "Decided" badge, winner pill, and "Log in" button are barely visible.
+- **Complexity:** low — adjust Impact theme's accent/primary color variables in `globals.css` to meet WCAG AA contrast requirements against the dark background.
+- **Priority:** medium — all users who pick this theme will see broken UI; branding impression is negative.
+- **Root Cause:** design flaw — Impact theme accent color insufficient contrast against its dark background.
+- **Status:** Open

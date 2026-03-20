@@ -52,7 +52,7 @@ export const VoteButtons = ({
       const { error: anonError } = await supabase.auth.signInAnonymously();
       if (anonError) {
         console.error("Anonymous sign-in error:", anonError.message);
-        router.push(`/login?redirect=/s/${slug}&vote=${side}`);
+        router.push(`/login?redirect=${encodeURIComponent(`/s/${slug}?vote=${side}`)}`);
         return;
       }
       // Redirect to let server-side auto-cast handle the vote with fresh cookies
