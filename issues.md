@@ -420,3 +420,12 @@ Living bug and issue tracker. Log bugs as they're found, update when fixed.
 - **ISSUE-035 (pinch-zoom disabled) — Fixed.** Removed `maximumScale: 1` from viewport (WCAG 1.4.4).
 - **Voter identity ("Anonymous" for everyone) — Fixed.** Labels resolve server-side: `display_name` → masked phone (`••• 1694`) → `Anonymous #N`. Raw phone numbers never reach the client.
 - **ISSUE-038 (dead code) — Partially fixed.** Removed the never-true `showIdentityPrompt` state from `vote-buttons.tsx`.
+
+## 2026-08-03 — PR #1 review round
+
+- **ISSUE-039 — Migration 00005's phone REVOKE was a no-op. Fixed (22b6206).** A column-level `REVOKE SELECT (phone)` cannot subtract from an existing table-level `GRANT SELECT`, which Supabase's default API grants provide. The first version of the fix therefore closed nothing. Now revokes table-level SELECT from `anon`/`authenticated`, then grants back `id, display_name, avatar_url, created_at`. Found by the Codex PR bot, not by the session that wrote it. **Regression test still missing** — proving `anon` cannot read `phone` needs an integration test against a live DB, blocked on the Supabase restore.
+- **ISSUE-040 — Anonymous voter labels renumbered when someone added a name. Fixed (22b6206).** Numbering ran off a count of unnamed voters, so one person setting `display_name` shifted every later anonymous voter's label. Now numbered by immutable vote position. Regression test added and mutation-checked.
+- **ISSUE-041 — Two tests asserted removed behavior. Fixed (22b6206).** `anonymous-voting.test.ts` claimed a failed anonymous sign-in must show an inline error and must NOT redirect to `/login`. They passed through the opposite change because they built a local string and never touched the component. Replaced with tests calling the shipped `buildVoteLoginRedirect()`.
+- **ISSUE-042 — `loading` never reset before the login redirect. Fixed (22b6206).** `router.push` is a soft navigation, so the component can outlive the call; the voter was left on permanently disabled buttons.
+
+**Root-cause note for all four:** three of the four were found by an outside reviewer or by re-reading with a checklist, not by the passing suite. The self-review found the label instability and the `loading` miss; the bot found the P1 that made the headline security fix inert. Self-review is a floor, not a gate.
