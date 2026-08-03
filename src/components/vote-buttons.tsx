@@ -39,7 +39,6 @@ export const VoteButtons = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [votedSide, setVotedSide] = useState<"a" | "b" | null>(null);
-  const [showIdentityPrompt, setShowIdentityPrompt] = useState(false);
   const [promptDismissed, setPromptDismissed] = useState(false);
 
   const handleVote = async (side: "a" | "b") => {
@@ -52,9 +51,12 @@ export const VoteButtons = ({
       const supabase = createClient();
       const { error: anonError } = await supabase.auth.signInAnonymously();
       if (anonError) {
+        // Anonymous sign-ins may be disabled in the Supabase dashboard, or the
+        // call may fail transiently. Never dead-end the voter here — fall back
+        // to OTP login, which auto-casts the vote after redirect (ISSUE-024).
         console.error("Anonymous sign-in error:", anonError.message);
-        setError(`Anonymous sign-in failed: ${anonError.message}`);
-        setLoading(false);
+        const redirectTo = encodeURIComponent(`/s/${slug}?vote=${side}`);
+        router.push(`/login?redirect=${redirectTo}`);
         return;
       }
       // Hard navigation to ensure fresh cookies are sent with the request
@@ -82,26 +84,6 @@ export const VoteButtons = ({
 
   if (isExpired) {
     return null;
-  }
-
-  // Show post-vote identity prompt for anonymous voters
-  if (showIdentityPrompt) {
-    return (
-      <div className="space-y-3">
-        <p className="text-muted-foreground text-center text-sm">
-          Vote recorded for{" "}
-          <span className="font-semibold">
-            {votedSide === "a" ? sideA : sideB}
-          </span>
-        </p>
-        <PostVotePrompt
-          onDone={() => {
-            setShowIdentityPrompt(false);
-            router.refresh();
-          }}
-        />
-      </div>
-    );
   }
 
   if (userVote) {

@@ -109,6 +109,24 @@ Prioritized by impact on viral growth, share flow, and core UX delight.
 - **Description:** When an unauthenticated user taps a vote button, store the intended side in the redirect URL (?vote=a/b). After login, auto-cast the vote server-side and redirect to a clean URL. Eliminates the double-tap friction where users had to vote again after authenticating.
 - **Status:** done
 
+### Voter identity fallback: masked phone + indexed anonymous
+- **Date Added:** 2026-07-30
+- **Priority:** high
+- **Description:** "See who voted" shows bare "Anonymous" for anyone without a display_name — the long-standing "names/numbers don't show up" complaint. Fallback chain: display_name → masked phone last-4 ("••• 1694", masked server-side via admin client, never ship full numbers to the client) → "Anonymous #N". Pair with the ISSUE-030 column privacy fix and localStorage name prefill. See IMPROVEMENT_PLAN.md Phase 1.
+- **Status:** backlog
+
+### Creator picks a side at create time (auto-cast)
+- **Date Added:** 2026-07-30
+- **Priority:** high
+- **Description:** Optional "Which side are you on?" segment on the create form; auto-cast the creator's vote on create. Every shared link starts 1–0 instead of 0–0 (live scoreboard is better bait in the OG preview) and removes the awkward creator-votes-on-own-squabble step. See IMPROVEMENT_PLAN.md Phase 2.
+- **Status:** backlog
+
+### Logged-in home goes straight to create
+- **Date Added:** 2026-07-30
+- **Priority:** medium
+- **Description:** `/` for a logged-in user shows a marketing landing + "Start a new one" button. Render the create form directly (or redirect to /create) — the landing pitch is for logged-out visitors. Saves one click on the most common returning-creator path.
+- **Status:** backlog
+
 ---
 
 ## MEDIUM priority
@@ -289,6 +307,14 @@ Prioritized by impact on viral growth, share flow, and core UX delight.
 
 Three optional visual themes selectable via a small pill toggle (🥊 🌋 ☄️) pinned at the top of the dispute page. Theme choice stored in `localStorage`. Each theme swaps a CSS class on the page wrapper and plugs into existing animation hooks (vote cast, timer urgency, winner reveal). Default/no-theme always works as baseline.
 
+> **Status update (2026-07-30):** the token-override layer of all three themes is SHIPPED (globals.css + theme-toggle.tsx): backgrounds, cards, side-colored vote buttons/bars, timer/badge styling, urgency animations. The elaborate set-piece animations described below (glove collision, lava columns, meteor track, winner overlays) are NOT built. Known theme debt: Impact contrast (ISSUE-026), brittle structural CSS selectors, FOUC on load, and theme being a viewer preference instead of a per-squabble property — see IMPROVEMENT_PLAN.md Phase 3.
+
+### Make theme a per-squabble property (creator-picked skin)
+- **Date Added:** 2026-07-30
+- **Priority:** medium
+- **Description:** Move theme choice from a per-viewer localStorage toggle to a `disputes.theme` column picked on the create form. Everyone who opens the link sees the same skin, and the OG image can match it — themes become shareable content instead of a private setting. Keep localStorage only as the creator's default for new squabbles.
+- **Status:** backlog
+
 ---
 
 ### Theme: "The Ring" 🥊 (Boxing)
@@ -303,7 +329,7 @@ Three optional visual themes selectable via a small pill toggle (🥊 🌋 ☄�
   - **Closing soon state:** Screen shakes with a subtle ring-the-bell vibration pattern via CSS animation + `navigator.vibrate()`.
   - **Winner reveal:** Full-screen overlay: "KNOCKOUT — [Side] wins by TKO, [X]–[Y]" with a slow-motion glove impact freeze frame. Confetti replaced with cartoon ⭐ stars spiraling outward.
   - **Color palette:** canvas tan bg, red vs blue corners, black ropes.
-- **Status:** backlog
+- **Status:** partially done — palette, corner-colored buttons/bars, card ropes, timer styling, bell-shake urgency shipped. Glove collision, tug-of-war rope bar, KNOCKOUT overlay not built.
 
 ### Theme: "Molten" 🌋 (Volcano Eruption)
 - **Date Added:** 2026-03-11
@@ -318,7 +344,7 @@ Three optional visual themes selectable via a small pill toggle (🥊 🌋 ☄�
   - **Closing soon:** Both volcanoes rumble (translate shake), pressure gauge fills red, "ABOUT TO ERUPT" label pulses.
   - **Winner reveal:** The winning side's volcano fully erupts — lava particle system floods the screen bottom-up, clearing to reveal "ERUPTION — [Side] overwhelms [X]–[Y]." Confetti replaced with glowing ember/ash particles floating upward.
   - **Color palette:** dark ash (#1a1a1a) bg, lava orange (#FF6B00) and molten red (#CC2200), glow accents.
-- **Status:** backlog
+- **Status:** partially done — ash palette, lava buttons (breathe animation), gradient bars, heat shimmer, bubble urgency shipped. Vertical lava columns, eruption vote-cast effect, ERUPTION overlay not built.
 
 ### Theme: "Impact" ☄️ (Meteor Collision)
 - **Date Added:** 2026-03-11
@@ -333,4 +359,4 @@ Three optional visual themes selectable via a small pill toggle (🥊 🌋 ☄�
   - **Closing soon:** Both meteors visibly accelerating — trail particles thicken and intensify, screen edges glow.
   - **Winner reveal:** Meteors slam together center-screen — full-screen shockwave ring animation expanding outward (CSS `scale` + `opacity` keyframes), screen whites out, then reveals "IMPACT — [Side] obliterates [X]–[Y]. The dust has settled." Confetti replaced with debris chunks flying outward from center in all directions.
   - **Color palette:** void black bg, electric blue (#00BFFF) for Side A, burning orange (#FF8C00) for Side B, white shockwave.
-- **Status:** backlog
+- **Status:** partially done — void palette, starfield, meteor buttons with particle trails, glowing gradient bars, accelerate urgency shipped. Collision-course meteor track, shockwave winner reveal not built. Contrast bug open (ISSUE-026).

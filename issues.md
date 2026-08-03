@@ -302,3 +302,121 @@ Living bug and issue tracker. Log bugs as they're found, update when fixed.
 - **Priority:** medium — all users who pick this theme will see broken UI; branding impression is negative.
 - **Root Cause:** design flaw — Impact theme accent color insufficient contrast against its dark background.
 - **Status:** Open
+
+### [ISSUE-029] Vote button dead-ends when anonymous sign-in fails — no OTP fallback
+- **Date:** 2026-07-30
+- **Area:** voting | auth
+- **Persona:** New Voter
+- **Description:** In `vote-buttons.tsx`, when `signInAnonymously()` fails (anon sign-ins disabled in Supabase, network error, etc.), the handler shows the raw error and returns. The ISSUE-024 fallback (redirect to `/login?redirect=/s/{slug}?vote={side}` for OTP + auto-cast) was removed by the ISSUE-027 fix. A logged-out user tapping a vote button has NO path to vote — the flow is a hard dead end unless they discover the header "Log in".
+- **Steps to Reproduce:** 1. Disable anonymous sign-ins in Supabase. 2. Open `/s/{slug}` logged out. 3. Tap a vote side. 4. See "Anonymous sign-in failed: ..." and nothing else.
+- **Complexity:** low — on anon error, `router.push(\`/login?redirect=\${encodeURIComponent(\`/s/\${slug}?vote=\${side}\`)}\`)` (optionally after a brief toast).
+- **Priority:** critical — blocks all new-voter conversion whenever anon auth is unavailable (which is the current prod state).
+- **Root Cause:** code bug — error path replaced the login-redirect fallback instead of complementing it.
+- **Status:** Open
+
+### [ISSUE-030] Any authenticated user can read every user's full phone number via API
+- **Date:** 2026-07-30
+- **Area:** auth | infra
+- **Persona:** — (security)
+- **Description:** Migration `00002` policy `"Authenticated users can read profiles"` grants row-level SELECT on ALL columns of `public.users` (`auth.uid() IS NOT NULL`). Anonymous sessions count as authenticated, so anyone with the public anon key can `select phone from users` via PostgREST and enumerate all phone numbers. The app only queries `display_name`, but the API surface allows the leak.
+- **Steps to Reproduce:** 1. `signInAnonymously()` with the anon key. 2. `GET /rest/v1/users?select=phone`. 3. Full phone list returned.
+- **Complexity:** low — `REVOKE SELECT (phone) ON public.users FROM anon, authenticated;` (column-level grant); keep service-role access for server-side masking. Ensure no client query does `users.select("*")`.
+- **Priority:** critical (before relaunch) — PII exposure.
+- **Root Cause:** design flaw — row-level policy used where column-level restriction was needed.
+- **Status:** Open
+
+### [ISSUE-031] closeSquabble silently falls back to RLS-blocked client when service key missing
+- **Date:** 2026-07-30
+- **Area:** squabbles | infra
+- **Persona:** Anonymous Viewer
+- **Description:** `closeSquabble()` falls back to the regular anon client when `SUPABASE_SERVICE_ROLE_KEY` isn't configured. In that state the UPDATE is silently blocked by RLS for non-creators — exactly the ISSUE-021 "LIVE badge on expired squabble" bug. ARCHITECTURE.md still instructs NOT to set the service key in Vercel, so a fresh prod deploy following the docs reintroduces ISSUE-021.
+- **Steps to Reproduce:** 1. Deploy without `SUPABASE_SERVICE_ROLE_KEY`. 2. Let a squabble expire. 3. Visit as non-creator — status stays "open", mixed LIVE/results state.
+- **Complexity:** medium — best fix: `SECURITY DEFINER` function `close_expired_dispute(id)` that validates expiry + tallies server-side, callable by anon (no service key needed). Also update ARCHITECTURE.md env docs.
+- **Priority:** high — silent failure mode on the core settle mechanic.
+- **Root Cause:** design flaw — silent fallback + stale deployment docs.
+- **Status:** Open
+
+### [ISSUE-032] Geist Sans loaded but never applied — circular --font-sans variable
+- **Date:** 2026-07-30
+- **Area:** ui
+- **Persona:** — (all)
+- **Description:** `globals.css` `@theme inline` maps `--font-sans: var(--font-sans)` (self-referencing). The layout loads Geist with variable `--font-geist-sans`, which nothing consumes (only `--font-geist-mono` is wired). The whole app renders in the fallback system font; the Geist font download is wasted bytes.
+- **Steps to Reproduce:** 1. Inspect computed `font-family` on body — not Geist. 2. See `globals.css:10` circular var.
+- **Complexity:** low — change to `--font-sans: var(--font-geist-sans);`.
+- **Priority:** medium — typography is silently not the intended design.
+- **Root Cause:** code bug — wrong variable name in `@theme inline`.
+- **Status:** Open
+
+### [ISSUE-033] PWA manifest references icons that don't exist — broken install
+- **Date:** 2026-07-30
+- **Area:** mobile | infra
+- **Persona:** Mobile User
+- **Description:** `public/manifest.json` lists `/icon-192.png` and `/icon-512.png`; neither file exists (public/ contains only Next.js template SVGs). "Add to Home Screen" gets a broken/blank icon; no `apple-touch-icon` either. `theme_color` is `#ffffff` while the app defaults to the tan Ring theme.
+- **Steps to Reproduce:** 1. `curl /icon-192.png` → 404. 2. Add to home screen on iOS → default letter tile.
+- **Complexity:** low — generate 192/512 + maskable + apple-touch-icon, align theme_color, delete unused template SVGs.
+- **Priority:** medium — PWA is the stated platform strategy; install experience is broken.
+- **Root Cause:** config — manifest written, assets never generated.
+- **Status:** Open
+
+### [ISSUE-034] e2e directory missing — `pnpm test:e2e` cannot run
+- **Date:** 2026-07-30
+- **Area:** infra
+- **Persona:** — (dev)
+- **Description:** `playwright.config.ts` sets `testDir: "./e2e"` with mobile Safari/Chrome + desktop projects and a webServer, but no `e2e/` directory exists anywhere in the repo. CLAUDE.md instructs running `pnpm test:e2e` before deploys — the command errors with "no tests found".
+- **Complexity:** medium — write the smoke pack: create → anon vote (second context) → expiry → results → voter breakdown.
+- **Priority:** medium — deploy gate documented but nonexistent.
+- **Root Cause:** design flaw — config committed without tests.
+- **Status:** Open
+
+### [ISSUE-035] Pinch-zoom disabled (maximumScale: 1) — accessibility violation
+- **Date:** 2026-07-30
+- **Area:** ui | mobile
+- **Persona:** Mobile User
+- **Description:** `layout.tsx` viewport export sets `maximumScale: 1`, preventing pinch-zoom on the primary (mobile) platform. Violates WCAG 1.4.4 Resize Text.
+- **Complexity:** low — remove `maximumScale`.
+- **Priority:** low
+- **Root Cause:** code bug — template viewport settings kept.
+- **Status:** Open
+
+### [ISSUE-036] pnpm 11 install fails — build-script allowlist config migrated
+- **Date:** 2026-07-30
+- **Area:** infra
+- **Persona:** — (dev)
+- **Description:** pnpm 11 no longer reads `package.json#pnpm.onlyBuiltDependencies` and errors on unapproved build scripts (esbuild, msw, sharp, unrs-resolver). `pnpm-workspace.yaml` also contained a half-written `allowBuilds` scaffold with literal placeholder strings. Fresh installs failed on any machine with pnpm ≥ 11.
+- **Complexity:** low
+- **Priority:** high (dev-blocking)
+- **Root Cause:** config — pnpm major-version behavior change.
+- **Status:** Fixed
+- **Fix:** Rewrote `pnpm-workspace.yaml` with `allowBuilds: {esbuild: true, msw: true, sharp: false, unrs-resolver: false}`. Recommend also pinning `"packageManager": "pnpm@11.18.0"` in package.json (this branch).
+- **Regression Test:** No — `pnpm install && pnpm test && pnpm build` green confirms.
+
+### [ISSUE-037] CLAUDE.md documents db scripts that don't exist in package.json
+- **Date:** 2026-07-30
+- **Area:** infra
+- **Persona:** — (dev)
+- **Description:** CLAUDE.md Commands section lists `pnpm db:migrate`, `pnpm db:reset`, `pnpm db:types`; package.json defines none of them. Type generation (`db:types`) matters because dashboard/page code uses hand-rolled double casts instead of generated types.
+- **Complexity:** low — add supabase CLI scripts or fix the docs.
+- **Priority:** low
+- **Root Cause:** config — doc drift.
+- **Status:** Open
+
+### [ISSUE-038] Dead code: unused identity-prompt state and unused import
+- **Date:** 2026-07-30
+- **Area:** ui
+- **Persona:** — (dev)
+- **Description:** `vote-buttons.tsx` declares `showIdentityPrompt` state and a full render branch for it, but nothing ever sets it `true` (the post-vote prompt actually renders via the `userVote && isAnonymous` branch). `post-vote-prompt.tsx` imports `verifyOtp` but never uses it (calls `upgradeAnonymousUser`).
+- **Complexity:** low — delete the dead branch/state and the unused import.
+- **Priority:** low
+- **Root Cause:** code bug — leftover from ISSUE-027 rework.
+- **Status:** Open
+
+---
+
+## 2026-08-03 — Fixes applied (Phase 0/1 of IMPROVEMENT_PLAN.md)
+
+- **ISSUE-029 (vote dead-end when anon sign-in fails) — Fixed.** `vote-buttons.tsx` now falls back to `/login?redirect=/s/{slug}?vote={side}` instead of showing an error and stopping.
+- **ISSUE-030 (phone numbers readable via PostgREST) — Fixed.** Migration `00005_phone_column_privacy.sql` revokes column-level SELECT on `users.phone` from `anon`/`authenticated`. **Must be applied to the Supabase project once it is restored.**
+- **ISSUE-032 (circular `--font-sans`) — Fixed.** Now points at `var(--font-geist-sans)`, so Geist Sans actually applies.
+- **ISSUE-035 (pinch-zoom disabled) — Fixed.** Removed `maximumScale: 1` from viewport (WCAG 1.4.4).
+- **Voter identity ("Anonymous" for everyone) — Fixed.** Labels resolve server-side: `display_name` → masked phone (`••• 1694`) → `Anonymous #N`. Raw phone numbers never reach the client.
+- **ISSUE-038 (dead code) — Partially fixed.** Removed the never-true `showIdentityPrompt` state from `vote-buttons.tsx`.
