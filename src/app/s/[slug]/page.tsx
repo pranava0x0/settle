@@ -1,6 +1,12 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import {
+  resolveVoterLabels,
+  type LabeledVoter,
+  type RawVoter,
+} from "@/lib/voter-identity";
 import { isExpired } from "@/lib/utils";
 import { closeSquabble } from "@/lib/actions/squabbles";
 import { APP_NAME } from "@/lib/constants";
@@ -153,23 +159,51 @@ export default async function SquabblePage({ params, searchParams }: PageProps) 
   // Fetch voter breakdown — creator always, other voters after close
   const isCreator = user?.id === squabble.creator_id;
   const shouldShowVoters = isCreator || (showResults && !!userVote);
-  let voters: { side: "a" | "b"; display_name: string | null; voted_at: string }[] = [];
+  let voters: LabeledVoter[] = [];
   if (shouldShowVoters) {
-    const { data: voteRows } = await supabase
+    // Read voters with the admin client so phone is available for the masked
+    // fallback. Phone is revoked from anon/authenticated (migration 00005) and
+    // is masked to its last 4 digits here — raw numbers never leave the server.
+    let voterClient = supabase;
+    let canReadPhone = true;
+    try {
+      voterClient = createAdminClient();
+    } catch (adminError) {
+      canReadPhone = false;
+      console.error(
+        "Voter breakdown: admin client unavailable, falling back to names only.",
+        adminError,
+      );
+    }
+
+    const { data: voteRows, error: votersError } = await voterClient
       .from("votes")
-      .select("side, created_at, users(display_name)")
+      .select(
+        canReadPhone
+          ? "side, created_at, users(display_name, phone)"
+          : "side, created_at, users(display_name)",
+      )
       .eq("dispute_id", squabble.id)
       .order("created_at", { ascending: true });
 
+    if (votersError) {
+      console.error("Voter breakdown query failed:", votersError.message);
+    }
+
     if (voteRows) {
-      voters = voteRows.map((v) => {
-        const userRecord = v.users as unknown as { display_name: string | null } | null;
+      const rawVoters: RawVoter[] = voteRows.map((v) => {
+        const userRecord = v.users as unknown as {
+          display_name: string | null;
+          phone?: string | null;
+        } | null;
         return {
           side: v.side as "a" | "b",
           display_name: userRecord?.display_name ?? null,
+          phone: userRecord?.phone ?? null,
           voted_at: v.created_at,
         };
       });
+      voters = resolveVoterLabels(rawVoters);
     }
   }
   const totalVotes = (voteCountA ?? 0) + (voteCountB ?? 0);

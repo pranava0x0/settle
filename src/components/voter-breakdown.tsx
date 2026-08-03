@@ -3,11 +3,11 @@
 import { useState } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 
-type Voter = {
-  side: "a" | "b";
-  display_name: string | null;
-  voted_at: string;
-};
+import type { LabeledVoter } from "@/lib/voter-identity";
+
+// Labels are resolved server-side (name -> masked phone -> "Anonymous #N").
+// Raw phone numbers never reach this component.
+type Voter = LabeledVoter;
 
 type VoterBreakdownProps = {
   voters: Voter[];
@@ -54,7 +54,7 @@ export const VoterBreakdown = ({
             ) : (
               sideAVoters.map((v, i) => (
                 <p key={i} className="text-sm">
-                  {v.display_name ?? "Anonymous"}
+                  {v.label}
                 </p>
               ))
             )}
@@ -68,7 +68,7 @@ export const VoterBreakdown = ({
             ) : (
               sideBVoters.map((v, i) => (
                 <p key={i} className="text-sm">
-                  {v.display_name ?? "Anonymous"}
+                  {v.label}
                 </p>
               ))
             )}
