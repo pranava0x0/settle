@@ -6,6 +6,7 @@ import { castVote } from "@/lib/actions/votes";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { buildVoteLoginRedirect } from "@/lib/voter-identity";
 import { PostVotePrompt } from "@/components/post-vote-prompt";
 
 type VoteButtonsProps = {
@@ -55,8 +56,11 @@ export const VoteButtons = ({
         // call may fail transiently. Never dead-end the voter here — fall back
         // to OTP login, which auto-casts the vote after redirect (ISSUE-024).
         console.error("Anonymous sign-in error:", anonError.message);
-        const redirectTo = encodeURIComponent(`/s/${slug}?vote=${side}`);
-        router.push(`/login?redirect=${redirectTo}`);
+        // Reset loading: router.push is a soft navigation, so this component
+        // can outlive the call (slow push, failed route, or Back from /login).
+        // Leaving it true strands the voter on permanently disabled buttons.
+        setLoading(false);
+        router.push(buildVoteLoginRedirect(slug, side));
         return;
       }
       // Hard navigation to ensure fresh cookies are sent with the request
