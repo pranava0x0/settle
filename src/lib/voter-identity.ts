@@ -9,6 +9,18 @@
  * client. Pass raw rows in, send only the resolved labels to components.
  */
 
+/**
+ * URL a voter is sent to when anonymous sign-in is unavailable: OTP login,
+ * carrying the vote intent so `/s/[slug]` auto-casts it after redirect.
+ * `login-form.tsx` reads the `redirect` param; keep the key in sync with it.
+ *
+ * Exported so the regression test exercises the shipped builder rather than
+ * re-deriving the string (a test that rebuilds the URL passes whatever the
+ * component does).
+ */
+export const buildVoteLoginRedirect = (slug: string, side: "a" | "b"): string =>
+  `/login?redirect=${encodeURIComponent(`/s/${slug}?vote=${side}`)}`;
+
 export type RawVoter = {
   side: "a" | "b";
   display_name: string | null;
@@ -31,14 +43,22 @@ export const maskPhone = (phone: string | null | undefined): string | null => {
 };
 
 /**
- * Resolve every voter to a display label. Anonymous numbering is positional,
- * so it stays stable for a given squabble as long as votes are passed in
- * created_at order (votes are immutable, so the order never changes).
+ * Resolve every voter to a display label.
+ *
+ * Anonymous numbering is the voter's 1-based position in the full vote list,
+ * NOT a running count of unnamed voters. That distinction is the whole point:
+ * votes are immutable and ordered by created_at, but `display_name` is mutable,
+ * and the post-vote prompt exists to get people to set one. Counting only the
+ * unnamed voters would renumber everyone else the moment one person adds a
+ * name — "Anonymous #2" silently becomes "#1" because a stranger did something.
+ *
+ * The cost is gaps (#1, #4, #5 when voters 2 and 3 have names). A gap is
+ * cosmetic; a label that reassigns itself to a different person is not.
+ *
+ * Callers must pass votes in created_at order for the numbering to be stable.
  */
-export const resolveVoterLabels = (voters: RawVoter[]): LabeledVoter[] => {
-  let anonymousCount = 0;
-
-  return voters.map((voter) => {
+export const resolveVoterLabels = (voters: RawVoter[]): LabeledVoter[] =>
+  voters.map((voter, index) => {
     const name = voter.display_name?.trim();
     if (name) {
       return { side: voter.side, label: name, voted_at: voter.voted_at };
@@ -49,11 +69,9 @@ export const resolveVoterLabels = (voters: RawVoter[]): LabeledVoter[] => {
       return { side: voter.side, label: masked, voted_at: voter.voted_at };
     }
 
-    anonymousCount += 1;
     return {
       side: voter.side,
-      label: `Anonymous #${anonymousCount}`,
+      label: `Anonymous #${index + 1}`,
       voted_at: voter.voted_at,
     };
   });
-};

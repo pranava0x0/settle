@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { isExpired } from "@/lib/utils";
+import { buildVoteLoginRedirect } from "@/lib/voter-identity";
 
 /**
  * Tests covering issues ISSUE-027, ISSUE-028, and the post-vote prompt
@@ -53,21 +54,32 @@ describe("ISSUE-027: Anonymous user phone handling", () => {
   });
 
   describe("anonymous sign-in error handling", () => {
-    it("formats error message for display when anonymous sign-in fails", () => {
-      const anonErrorMessage = "Database error creating anonymous user";
-      const displayError = `Anonymous sign-in failed: ${anonErrorMessage}`;
-      expect(displayError).toBe(
-        "Anonymous sign-in failed: Database error creating anonymous user",
-      );
-      // Should NOT redirect to login — error is shown on-screen
-      expect(displayError).toContain("Anonymous sign-in failed");
+    // These two tests previously asserted the OPPOSITE — that a failed
+    // anonymous sign-in shows an inline error and must NOT redirect to /login.
+    // They were vacuous (they built a local string and asserted on it, never
+    // touching vote-buttons.tsx), so they stayed green through the fix while
+    // documenting the dead end as intended behavior. Now they call the shipped
+    // builder, so restoring the dead end breaks them.
+
+    it("sends a failed anonymous sign-in to OTP login, not a dead end", () => {
+      const url = buildVoteLoginRedirect("k9_9n8gz", "a");
+      expect(url).toContain("/login");
+      expect(url).not.toContain("Anonymous sign-in failed");
     });
 
-    it("does not include login redirect URL in error flow", () => {
-      // The old behavior redirected to /login — new behavior shows error inline
-      const anonErrorMessage = "Database error creating anonymous user";
-      const displayError = `Anonymous sign-in failed: ${anonErrorMessage}`;
-      expect(displayError).not.toContain("/login");
+    it("preserves the vote intent through the login redirect", () => {
+      const url = buildVoteLoginRedirect("k9_9n8gz", "b");
+      // login-form.tsx reads `redirect`; /s/[slug] reads `vote` after landing.
+      const redirect = new URL(url, "https://example.com").searchParams.get(
+        "redirect",
+      );
+      expect(redirect).toBe("/s/k9_9n8gz?vote=b");
+    });
+
+    it("encodes the redirect so the vote param survives as one value", () => {
+      const url = buildVoteLoginRedirect("k9_9n8gz", "a");
+      // A bare `?vote=a` would be parsed as a param of /login, losing the intent.
+      expect(url).toBe("/login?redirect=%2Fs%2Fk9_9n8gz%3Fvote%3Da");
     });
   });
 });
