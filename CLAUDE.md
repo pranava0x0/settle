@@ -238,6 +238,25 @@ Each of these cost real debugging time here or in a sibling project. Read before
 - **Don't assume a port is free.** Several projects run in parallel here; binding an occupied port silently connects to the *wrong* service.
 - **A cookie set by a client-side Supabase call isn't visible to the server on a soft navigation.** `router.push()` may not sync fresh auth cookies; use a hard `window.location.href` when the very next server render must see the new session. Cost: commits `17119be`, `13acfee`.
 
+### 2026-08-28 — voter anonymity, migration drift, result texts
+
+**Universal lessons (mirrored to `~/Projects/coding-best-practices/CLAUDE.md`):**
+
+- **A committed migration is not an applied migration, and the gap is silent.** Migrations 00002 and 00005 sat in `supabase/migrations/` for months without ever running against the hosted project. 00002's absence *was* the "who voted shows Anonymous for everyone" bug; 00005's absence left the phone-column hole that `issues.md` already recorded as fixed. Check the catalog, never the directory: `select policyname, qual from pg_policies where tablename='users'` and `select grantee, privilege_type, column_name from information_schema.column_privileges where table_name='users'`. Do this **first** for any permissions-shaped bug here.
+- **An outbox needs a status transition, not just a row lock.** `FOR UPDATE SKIP LOCKED` only protects simultaneous transactions. The claim RPC commits when it returns, so a row that was only stamped `attempts + 1` stayed `pending` while the sender was still calling Twilio, and the next tick sent it again. Claim must move the row out of `pending`; assert two consecutive claims overlap by zero (5-of-5 before the fix, 0 after).
+- **A missing joined row is not an empty field.** `users?.display_name ?? null` made "RLS refused this read" indistinguishable from "this voter has no name". Carry `profile_readable` and log the degraded case — see `countUnreadableProfiles()` in `lib/voter-identity.ts`.
+
+**This stack's specifics:**
+
+- **Tailwind v4 silently drops an arbitrary value containing a nested `var()` with a comma.** `bg-[var(--status-live-bg,var(--primary))]` produced no rule at all: the class landed on the element and styled nothing, which reads exactly like a cascade problem and sent this session chasing `@layer` ordering for a while. Prefer plain utilities.
+- **Don't fight a shadcn component's own `bg-*` variant from a stylesheet — pass a className.** `cn()` runs twMerge, which drops the conflicting utility outright. Overriding `[data-slot="badge"]` from `globals.css` depended on cascade-layer ordering that did not hold, and every status badge rendered identically in all three themes.
+- **Theme CSS variables reach `body` but did not resolve for `bg-foreground` on a nested badge.** Status colours are fixed palette values (`bg-emerald-600`, `bg-blue-600`, …) for that reason; they must stay legible on Ring's tan *and* Molten/Impact's near-black.
+- **Next.js request memoization serves the pre-write payload.** Re-`select()`ing a row you just updated inside the same render returns the old row. `closeSquabble()` now returns its outcome so callers apply it in place — this is what put a closed squabble under "Live now" with a "Closed" badge.
+- **Postgres: `ALTER TYPE ... ADD VALUE` needs its own migration** ("unsafe use of new value" if used in the same transaction), and `CREATE OR REPLACE FUNCTION` cannot change a return type — `DROP FUNCTION` first.
+- **`pnpm lint` takes over two minutes here.** Budget for it; a 120s Bash timeout kills it mid-run.
+- **The MCP SQL runner honours `BEGIN; … ROLLBACK;`** — verified before use. That makes it safe to run the invariant suite (`supabase/tests/result_sms_test.sql`) against the hosted DB, but *verify the rollback works* before trusting it with fixtures.
+- **The vote-window trigger (00007) blocks inserts on expired squabbles, including your own test fixtures.** Create the squabble open, insert votes, *then* move `expires_at` into the past.
+
 ### When something unexpected happens
 
 Append a note here or to `issues.md` in this shape: what I expected / what happened / why (root cause, not symptom) / what to do next time. Append, don't rewrite — the accumulation is the asset.
