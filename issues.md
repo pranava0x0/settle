@@ -611,3 +611,15 @@ the fix rather than as an experiment that has to be capable of failing. The chea
 catches both: after writing the guard, break the thing it guards and watch it go red — and when the
 guard depends on a **fake**, break the fake too, because a mock that is more generous than the real
 dependency silently satisfies assertions the real one would refuse.
+
+## 2026-08-28 — PR #4 review round (Codex)
+
+- **ISSUE-071 — The PostgREST fake still returned unselected fields. Fixed.** The projection helper
+  removed `phone` when absent, but spread the rest of each fixture row. A route query that accidentally
+  omitted `side`, `created_at`, `users`, or `users(display_name)` would therefore still receive those
+  fields in tests, unlike real PostgREST. The fake must build root and embedded objects solely from the
+  requested projection. **Fix:** added a depth-aware projection splitter and now construct both root
+  rows and `users(...)` objects only from selected fields, including correct `*` behavior. Three fake
+  contract tests cover omitted root fields, omitted relations, and omitted embedded fields. Sabotage-
+  checked by dropping `side` from the shipped route query: three image tests failed, then passed again
+  after restoration.

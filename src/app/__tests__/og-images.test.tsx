@@ -60,15 +60,93 @@ let selects: string[];
  * carried a phone at all. Honouring the projection is what makes
  * `adminAvailable` a real variable rather than decoration.
  */
-const projectVoteRows = (projection: string) =>
-  fixture.voteRows.map((row) => {
-    if (!row.users) return row;
-    const { phone, ...rest } = row.users;
-    return {
-      ...row,
-      users: projection.includes("phone") ? { ...rest, phone } : rest,
-    };
+const splitProjection = (projection: string) => {
+  const fields: string[] = [];
+  let depth = 0;
+  let start = 0;
+
+  for (let i = 0; i < projection.length; i += 1) {
+    if (projection[i] === "(") depth += 1;
+    if (projection[i] === ")") depth -= 1;
+    if (projection[i] === "," && depth === 0) {
+      fields.push(projection.slice(start, i).trim());
+      start = i + 1;
+    }
+  }
+
+  fields.push(projection.slice(start).trim());
+  return fields.filter(Boolean);
+};
+
+const projectVoteRows = (projection: string) => {
+  const selections = splitProjection(projection);
+  const rootColumns = selections.filter((selection) => !selection.includes("("));
+  const usersSelection = selections.find((selection) => selection.startsWith("users("));
+  const usersColumns = usersSelection
+    ? splitProjection(usersSelection.slice("users(".length, -1))
+    : null;
+
+  return fixture.voteRows.map((row) => {
+    const projected: Record<string, unknown> = {};
+
+    for (const column of rootColumns) {
+      if (column === "*") {
+        for (const [key, value] of Object.entries(row)) {
+          if (key !== "users") projected[key] = value;
+        }
+      } else if (Object.hasOwn(row, column)) {
+        projected[column] = row[column as keyof typeof row];
+      }
+    }
+
+    if (usersColumns) {
+      projected.users = row.users
+        ? Object.fromEntries(
+            usersColumns
+              .filter((column) => Object.hasOwn(row.users!, column))
+              .map((column) => [column, row.users![column as keyof typeof row.users]]),
+          )
+        : null;
+    }
+
+    return projected;
   });
+};
+
+describe("PostgREST fake projection", () => {
+  it("omits unselected root and embedded fields", () => {
+    expect(projectVoteRows("created_at, users(display_name)")).toEqual([
+      {
+        created_at: "2026-03-27T00:00:00Z",
+        users: { display_name: "pranava" },
+      },
+      {
+        created_at: "2026-03-27T00:01:00Z",
+        users: { display_name: null },
+      },
+      {
+        created_at: "2026-03-27T00:02:00Z",
+        users: null,
+      },
+    ]);
+  });
+
+  it("omits an embedded relation that was not selected", () => {
+    expect(projectVoteRows("side")).toEqual([
+      { side: "a" },
+      { side: "a" },
+      { side: "b" },
+    ]);
+  });
+
+  it("returns only selected fields inside an embedded relation", () => {
+    expect(projectVoteRows("users(phone)")).toEqual([
+      { users: { phone: null } },
+      { users: { phone: null } },
+      { users: null },
+    ]);
+  });
+});
 
 /** Minimal chainable stand-in for the postgrest builder the routes actually use. */
 const makeClient = () => ({
