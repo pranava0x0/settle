@@ -35,7 +35,7 @@ Do not blindly write code. Follow this loop:
 ---
 
 ## Stack
-- **Framework:** Next.js 15 (App Router) with TypeScript
+- **Framework:** Next.js 16 (App Router) with TypeScript — 16.1.6 as of 2026-08-28. (This line said 15 for months while the scar-tissue section below already described Next 16 behaviour.)
 - **Backend/DB:** Supabase (Postgres, Auth, Realtime)
 - **Auth:** Supabase Phone Auth (SMS OTP, no passwords)
 - **Styling:** Tailwind CSS v4 + shadcn/ui
@@ -182,7 +182,7 @@ SUPABASE_SERVICE_ROLE_KEY=
 - **A test you've never watched fail is a hypothesis, not a guard.** Before trusting a new regression test, break the fix on purpose, confirm the test goes red, then restore. And confirm the sabotage actually landed — a mutation that silently no-ops reads exactly like a vacuous test.
 - **Test the seam where a check is wired in, not just the checking function.** A unit test of a pure helper stays green while the helper sits disconnected. Assert the observable outcome, not the helper's return value.
 - **A test that re-implements the logic tests your model, not the machine.** If a transform's output is consumed by something stateful (React render lifecycle, cookies, the DOM), assert on the consumer's real output.
-- **When a field's population varies, a test over one subset proves nothing about the rest.** Most Squabble voters have `display_name = null` and no phone — pick fixtures that *lack* the field the code happens to read, not the one convenient row that has it.
+- **When a field's population varies, a test over one subset proves nothing about the rest.** Measured 2026-08-28 across all 66 live votes: **31 resolve from `display_name`, 21 from masked phone, 14 from `Anonymous #N`** — so no single bucket is "typical" and fixtures must cover all three. (This line previously asserted "most voters have `display_name = null` and no phone"; that bucket is actually the *smallest* at 21%. The rule was right, its supporting claim was never checked — exactly the failure the research-budget rule above warns about.)
 - **A race won't reproduce on a fast local harness — force the order.** The anonymous-vote cookie race (commit `17119be`) is the standing example.
 - **Derive counts and lists from the source of truth**, never a literal typed beside it. A hardcoded expected-count sits green through the very change it should catch.
 
@@ -230,7 +230,7 @@ Maintain a `backlog.md` file in the project root for ideas, features, and enhanc
 
 Each of these cost real debugging time here or in a sibling project. Read before assuming you've found a code bug.
 
-- **Supabase free tier auto-pauses after ~1 week idle.** DNS/connection failures that look exactly like a code bug. The restore window is ~90 days. **Check the dashboard before debugging code** when a previously-working integration suddenly can't connect. This project is paused right now.
+- **Supabase free tier auto-pauses after ~1 week idle.** DNS/connection failures that look exactly like a code bug. The restore window is ~90 days. **Check the dashboard before debugging code** when a previously-working integration suddenly can't connect. **Check it before believing this file, too:** this line read "this project is paused right now" from 2026-08-03 until 2026-08-28, when the project was in fact `ACTIVE_HEALTHY` — a stale claim about infrastructure being down is worse than no claim, because it discourages the runtime testing that would disprove it. Verify with `list_projects` / the dashboard, not with this sentence.
 - **Next.js 16 forbids `revalidatePath()` / `revalidateTag()` during render.** The lazy-close pattern (check expiry → update on read) crashes if the write happens inside a server component's render path. Route it through a server action or insert directly. Cost: commit `13acfee`.
 - **Wrap a shared session/membership lookup in React's `cache()`** when both a layout guard and its child page call it. They look independent but run in one request and each hits the DB. One-line fix at the definition site.
 - **Disable the Bash sandbox for vitest / dev-server / `localhost` calls.** The default sandbox blocks loopback IPC; test runners hang and fail with cryptic fetch timeouts ("no tests"), and `curl localhost` returns HTTP 000. Set `dangerouslyDisableSandbox: true` for those specific calls.
@@ -260,3 +260,92 @@ Each of these cost real debugging time here or in a sibling project. Read before
 ### When something unexpected happens
 
 Append a note here or to `issues.md` in this shape: what I expected / what happened / why (root cause, not symptom) / what to do next time. Append, don't rewrite — the accumulation is the asset.
+
+### 2026-08-28 — runtime UAT (localhost + Vercel), OG images, live data checks
+
+**Universal lessons (mirrored to `~/Projects/coding-best-practices/CLAUDE.md`):**
+
+- **A 200 from the domain in your docs is not evidence the domain is yours.** `ARCHITECTURE.md` named
+  `settle.vercel.app` as production. It answers 200 — and serves a *different company's* Material-UI
+  pages-router app. Two prior sessions read that 200 (and one wrote "returns nothing useful") without
+  ever checking the body for a string only this app emits. A deployment check must assert identity, not
+  reachability: grep the HTML for your own marker, or read the deployment record. Same family as "a port
+  is not a name" — an address is not an identity.
+- **When the fix an error message prescribes doesn't clear the error, stop re-reading the message and
+  start bisecting.** Satori's `Expected <div> to have explicit "display: flex" ... if it has more than
+  one child node` fires on a raw **number** child (`{count}`), not on child count. Two divs genuinely did
+  have multiple children; fixing both left the route still 500ing. Mechanically halving the JSX to one
+  element found it in four steps. The message's own prescription (`display: flex`) was additionally the
+  *wrong* fix — flexing a text container makes each text node a flex item and eats the spaces.
+- **A `catch {}` on a fallback path hides the failure of the thing it falls back from.** A share button
+  swallowed every native-share error and quietly copied a link instead, so a 500 on the image endpoint
+  behind it looked like normal behaviour. Any catch whose purpose is "the user cancelled" must
+  discriminate the cancel (`AbortError`) from everything else and log the rest.
+- **Before trusting a fallback chain, measure how much traffic each rung actually carries.** One query
+  turned "the masked-phone rung is a nicety" into "it is 32% of all voter labels, and it is switched off
+  in production for want of one env var."
+
+- **A data file that names other files is never validated by anything — no build step, type check, or
+  render imports it.** A PWA `manifest.json` pointed at two icons that had never existed. The app built
+  clean, typechecked clean, rendered clean, and every test passed, for months; the only symptom was a
+  blank tile on someone's home screen, which nobody sees from a terminal. This generalises past
+  manifests to every config that references paths by string — CI workflow `uses:` paths, docker
+  `COPY` sources, `include` globs, seed-data fixtures, redirect maps. **If a file's value is that it
+  points at other files, one test should walk its own list and assert each target resolves** — walk the
+  data, never a hardcoded copy of it beside the data, or the test sits green through exactly the
+  addition it should catch.
+
+- **Improving what a value *resolves to* is a disclosure change at every site that renders it, and the
+  blast radius is the set of callers, not the module.** A voter-label helper was swapped into a public
+  image endpoint to stop it printing a bare `"Anonymous"` — a strictly-better label. It was also
+  strictly more disclosure: the chain's second rung is a masked phone number, so an endpoint that had
+  leaked only display names began leaking `••• 4567` to any unauthenticated caller who knew the URL.
+  The page rendering the same labels had an authorization gate; the image endpoint had none, and could
+  not inherit one because it reads with an admin client *by design* (the column is revoked from normal
+  roles, which is the whole reason the masked rung needs elevation). **Before routing a resolver into a
+  new call site, enumerate that site's audience and compare it to the audience of the sites the
+  resolver already served.** A privacy fix that widens a value is a privacy regression wherever the
+  reader is broader — and "it returns a PNG" is not an access control.
+
+**This stack's specifics:**
+
+- **`/apple-touch-icon.png` is not the path in the App Router — `src/app/apple-icon.png` is.** Next
+  emits `<link rel="apple-touch-icon" href="/apple-icon.png?<hash>">` from that file convention, so
+  probing the conventional `/apple-touch-icon.png` URL returns 404 whether or not the icon is correctly
+  configured. Assert on the emitted `<link>` tag, not on the guessed path. Manifest icons are different
+  — those are plain `public/` paths and are fetched exactly as written.
+- **Regenerate icons with `python3 tools/generate-icons.py`** (PIL is available; there is no
+  rsvg/imagemagick/inkscape on this machine, and `sips` cannot rasterise SVG). Colours are copied from
+  `.theme-ring` in `globals.css` — if the palette moves, update the script's constants and re-run rather
+  than hand-editing PNGs.
+- **`next/og` / satori: never pass a bare number as a JSX child.** `<div>{voteCount}</div>` throws;
+  `<div>{String(voteCount)}</div>` renders. Same for any multi-part line — precompute
+  `` `${a} wins — ${x} to ${y}` `` into one string rather than interpolating several children, because
+  the "add `display: flex`" workaround silently drops the inter-node spaces. Guarded by
+  `src/app/__tests__/og-images.test.tsx`, which renders the real handlers with Supabase mocked and
+  asserts PNG magic bytes — `ImageResponse` works fine under vitest's `node` environment.
+- **The live deployment is `settle-ochre-eight.vercel.app`, and the only durable record of that is
+  `app_settings.site_url` in Postgres.** There is no `.vercel/` directory in the repo and no Vercel CLI
+  installed, so `select site_url from app_settings` is the fastest way to find the app. `settle.vercel.app`
+  is somebody else's.
+- **Lazy close is backstopped by pg_cron, so a 0-rows close is a delay and not a loss.** The
+  `squabble-results-tick` job runs `public.tick_squabble_results()` every minute (794 successful runs as
+  of this session). The RLS policy on `disputes` is `UPDATE ... auth.uid() = creator_id`, so
+  `closeSquabble()` genuinely cannot write when the visitor isn't the creator and the service role key is
+  absent — it logs `UPDATE affected 0 rows` correctly, and cron finishes the job within ~60s. Verified
+  end to end on a fixture: Live → Counting votes → Decided, winner written by cron.
+- **`result_notifications` being empty is the feature flag, not a bug.** `app_settings.sms_results_enabled`
+  is `false`, and `enqueue_result_notifications()` returns 0 immediately when it is. There is no trigger on
+  `disputes` — the whole pipeline is driven by that one cron tick.
+- **The MCP SQL runner's `BEGIN; … ROLLBACK;` was re-verified this session** by inserting a dispute inside
+  a transaction, confirming it visible in-transaction, rolling back, and confirming 0 rows after. Safe for
+  fixtures. For anything needing to persist across an HTTP request (a browser UAT pass), it has to be a
+  real committed row — create it, use it, then delete it and re-assert the baseline counts.
+- **The Browser pane's `computer` click actions fail with "pane is currently hidden" in a non-interactive
+  session.** `navigate`, `read_page`, `get_page_text` and `javascript_tool` all work. Drive clicks with
+  `javascript_tool` (`[...document.querySelectorAll('button')].find(b => b.textContent.trim() === 'X').click()`)
+  rather than burning two 30s timeouts discovering this.
+- **`.env.local` is not in the worktree.** It lives in `/Users/pranava/Projects/Settle/.env.local` and must
+  be copied in before `pnpm dev` will talk to Supabase. It carries only the URL and anon key — no
+  `SUPABASE_SERVICE_ROLE_KEY` — so locally the masked-phone label rung and immediate lazy close are both
+  unavailable by construction. Both fail loudly; that is the design working, not a bug to chase.

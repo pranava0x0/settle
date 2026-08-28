@@ -16,6 +16,40 @@ Prioritized by impact on viral growth, share flow, and core UX delight.
 
 ## HIGH priority
 
+### Set SUPABASE_SERVICE_ROLE_KEY in Vercel (a third of voter labels depend on it)
+- **Date Added:** 2026-08-28
+- **Priority:** high
+- **Description:** The Vercel project has exactly two environment variables (`NEXT_PUBLIC_SUPABASE_URL`,
+  `NEXT_PUBLIC_SUPABASE_ANON_KEY`) — the service role key has never been set, in any environment.
+  Measured against live data rather than assumed: of 66 votes, labels resolve **31 from `display_name`,
+  21 from masked phone, 14 from `Anonymous #N`**. The masked-phone rung needs the admin client to read
+  the `phone` column (revoked from anon/authenticated by 00005/00006), so **~32% of voters currently
+  render as `Anonymous #N` in production when they could show `••• 4567`**. Lazy close does *not* need
+  it (pg_cron backstops that within a minute — see ISSUE-046 note), so this is purely a labelling win.
+  Worth doing before any further work on voter identity, which is otherwise being tuned blind.
+- **Status:** backlog
+
+### Correct the production URL in ARCHITECTURE.md (documented host is a third party's app)
+- **Date Added:** 2026-08-28
+- **Priority:** high
+- **Description:** `ARCHITECTURE.md:159` names `settle.vercel.app`. That host returns 200 but serves an
+  unrelated app. The live deployment is `settle-ochre-eight.vercel.app`, currently recorded only in
+  `app_settings.site_url`. See ISSUE-066. While in there: `NEXT_PUBLIC_SITE_URL` is now read by the root
+  layout for `metadataBase` and should be set in Vercel to pin OG image URLs to a stable host.
+- **Status:** backlog
+
+### Smoke-test the OG image routes in CI
+- **Date Added:** 2026-08-28
+- **Priority:** high
+- **Description:** ISSUE-063 had both OG routes 500ing in production, and nothing caught it: the routes
+  render only when something requests an image, which no test and no page view does. The new
+  `src/app/__tests__/og-images.test.tsx` closes this for the JSX itself, but it mocks Supabase — it
+  cannot catch a query/RLS regression in the same routes. A `pnpm test:e2e` smoke test that boots the
+  app and asserts `content-type: image/png` on `/s/<slug>/opengraph-image` and
+  `/api/og/result/<slug>?format=story` would. Note `e2e/` still does not exist, so `pnpm test:e2e`
+  errors — this is the first concrete reason to create it.
+- **Status:** backlog
+
 ### Setup: Enable anonymous voting prerequisites
 - **Date Added:** 2026-03-18
 - **Priority:** high
@@ -130,6 +164,25 @@ Prioritized by impact on viral growth, share flow, and core UX delight.
 ---
 
 ## MEDIUM priority
+
+### "Too close to call" fires on a single vote
+- **Date Added:** 2026-08-28
+- **Priority:** medium
+- **Description:** `isTooCloseToCall` is `margin <= 1 && totalVotes > 0`, so the very first vote on a
+  squabble (1–0, margin 1) renders "Too close to call — every vote matters". With one voter there is
+  nothing close about it, and the banner spends its impact before there is any tension to report.
+  Suggest requiring `totalVotes >= 3` (or `>= 2` per side) so the copy lands when it is actually true.
+- **Status:** backlog
+
+### Migrate `middleware.ts` to the `proxy` convention
+- **Date Added:** 2026-08-28
+- **Priority:** medium
+- **Description:** Next.js 16.1.6 prints `The "middleware" file convention is deprecated. Please use
+  "proxy" instead.` on every dev start and every build. Nothing is broken today, but this is the file
+  that gates `/dashboard` and `/create`, so it should move on our schedule rather than on the release
+  that removes it.
+- **Status:** backlog
+
 
 ### Live vote bar — hidden until you vote
 - **Date Added:** 2026-03-11

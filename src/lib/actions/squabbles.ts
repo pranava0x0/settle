@@ -69,7 +69,17 @@ export async function closeSquabble(
   let db;
   try {
     db = createAdminClient();
-  } catch {
+  } catch (adminError) {
+    // Log it: on this path the close is about to be attempted as the *visitor*,
+    // and the "creator can update own disputes" policy will refuse it for
+    // everyone except the creator — 0 rows, no exception. The 0-rows branch
+    // below is the only other signal, and it can only guess at the cause.
+    console.error(
+      "closeSquabble: admin client unavailable, falling back to the caller's " +
+        "client. Lazy close will silently no-op for any visitor who is not the " +
+        "squabble's creator. Set SUPABASE_SERVICE_ROLE_KEY.",
+      adminError,
+    );
     db = await createClient();
   }
 

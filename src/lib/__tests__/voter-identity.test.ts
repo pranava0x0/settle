@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
+  canSeeVoterIdentities,
   countUnreadableProfiles,
   maskPhone,
   resolveVoterLabels,
@@ -173,5 +174,81 @@ describe("countUnreadableProfiles", () => {
 
     expect(labels.every((l) => l.startsWith("Anonymous"))).toBe(true);
     expect(countUnreadableProfiles(voters)).toBe(voters.length);
+  });
+});
+
+describe("canSeeVoterIdentities", () => {
+  const CREATOR = "creator-1";
+  const PAST = "2020-01-01T00:00:00.000Z";
+  const FUTURE = "2099-01-01T00:00:00.000Z";
+
+  const ask = (o: Partial<Parameters<typeof canSeeVoterIdentities>[0]> = {}) =>
+    canSeeVoterIdentities({
+      viewerId: null,
+      creatorId: CREATOR,
+      status: "closed",
+      expiresAt: PAST,
+      viewerHasVoted: false,
+      ...o,
+    });
+
+  it("refuses a signed-out stranger", () => {
+    expect(ask({ viewerId: null })).toBe(false);
+  });
+
+  it("refuses a signed-in user who did not vote", () => {
+    expect(ask({ viewerId: "bystander", viewerHasVoted: false })).toBe(false);
+  });
+
+  it("allows a voter once the squabble is settled", () => {
+    expect(ask({ viewerId: "voter", viewerHasVoted: true })).toBe(true);
+  });
+
+  it("refuses a voter while voting is still open", () => {
+    expect(
+      ask({
+        viewerId: "voter",
+        viewerHasVoted: true,
+        status: "open",
+        expiresAt: FUTURE,
+      }),
+    ).toBe(false);
+  });
+
+  it("treats an expired-but-still-open squabble as settled", () => {
+    // The row shape lazy closing guarantees: the cron tick has not run yet.
+    expect(
+      ask({
+        viewerId: "voter",
+        viewerHasVoted: true,
+        status: "open",
+        expiresAt: PAST,
+      }),
+    ).toBe(true);
+  });
+
+  it("allows the creator even while open and even without voting", () => {
+    expect(
+      ask({
+        viewerId: CREATOR,
+        viewerHasVoted: false,
+        status: "open",
+        expiresAt: FUTURE,
+      }),
+    ).toBe(true);
+  });
+
+  it("does not treat a null viewer as the creator", () => {
+    // Guards the `undefined === undefined` shape: if creatorId were ever
+    // nullish, a signed-out viewer must still be refused.
+    expect(
+      canSeeVoterIdentities({
+        viewerId: undefined,
+        creatorId: undefined as unknown as string,
+        status: "closed",
+        expiresAt: PAST,
+        viewerHasVoted: false,
+      }),
+    ).toBe(false);
   });
 });

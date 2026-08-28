@@ -1,5 +1,12 @@
 import { ImageResponse } from "next/og";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import {
+  canSeeVoterIdentities,
+  countUnreadableProfiles,
+  resolveVoterLabels,
+  type RawVoter,
+} from "@/lib/voter-identity";
 
 export async function GET(
   request: Request,
@@ -13,7 +20,7 @@ export async function GET(
 
   const { data: squabble } = await supabase
     .from("disputes")
-    .select("id, question, side_a, side_b, status, winner_side")
+    .select("id, question, side_a, side_b, status, winner_side, creator_id, expires_at")
     .eq("slug", slug)
     .single();
 
@@ -33,23 +40,104 @@ export async function GET(
     .eq("dispute_id", squabble.id)
     .eq("side", "b");
 
-  const { data: voters } = await supabase
-    .from("votes")
-    .select("side, users(display_name)")
-    .eq("dispute_id", squabble.id)
-    .order("created_at", { ascending: true })
-    .limit(20);
+  // Who is allowed to see WHO voted, as opposed to how many.
+  //
+  // Same predicate as /s/[slug]/page.tsx, from one shared definition so the two
+  // cannot drift. This route reads voters with the admin client (below)
+  // precisely to bypass RLS, so RLS cannot gate it — without this check the
+  // image would hand a voter roster, including masked phone digits, to any
+  // anonymous caller who knows the slug, while the page itself refuses the same
+  // person. An image endpoint is not less public than a page just because it
+  // returns a PNG.
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  const getVoterNames = (side: string) =>
-    (voters ?? [])
-      .filter((v) => v.side === side)
-      .map((v) => {
-        const u = v.users as unknown as { display_name: string | null } | null;
-        return u?.display_name ?? "Anonymous";
-      });
+  let hasVoted = false;
+  if (user) {
+    const { data: ownVote } = await supabase
+      .from("votes")
+      .select("side")
+      .eq("dispute_id", squabble.id)
+      .eq("user_id", user.id)
+      .single();
+    hasVoted = !!ownVote;
+  }
 
-  const sideAVoters = getVoterNames("a");
-  const sideBVoters = getVoterNames("b");
+  const shouldShowVoters = canSeeVoterIdentities({
+    viewerId: user?.id,
+    creatorId: squabble.creator_id,
+    status: squabble.status,
+    expiresAt: squabble.expires_at,
+    viewerHasVoted: hasVoted,
+  });
+
+  // Voter names resolve through the same chain as the page — display_name ->
+  // masked phone -> stable "Anonymous #N". Rendering a bare "Anonymous" here
+  // would reintroduce the exact bug lib/voter-identity.ts exists to prevent,
+  // in the one artefact that gets screenshotted into a group chat.
+  // Phone is revoked from anon/authenticated (migration 00005), so the masked
+  // fallback needs the admin client; masking stays server-side.
+  let voterClient = supabase;
+  let canReadPhone = shouldShowVoters;
+  try {
+    if (shouldShowVoters) voterClient = createAdminClient();
+  } catch (adminError) {
+    canReadPhone = false;
+    console.error(
+      "Result image: admin client unavailable, falling back to names only.",
+      adminError,
+    );
+  }
+
+  const { data: voteRows, error: votersError } = shouldShowVoters
+    ? await voterClient
+        .from("votes")
+        .select(
+          canReadPhone
+            ? "side, created_at, users(display_name, phone)"
+            : "side, created_at, users(display_name)",
+        )
+        .eq("dispute_id", squabble.id)
+        .order("created_at", { ascending: true })
+    : { data: null, error: null };
+
+  if (votersError) {
+    console.error(
+      `Result image voter query failed for ${slug}:`,
+      votersError.message,
+    );
+  }
+
+  const rawVoters: RawVoter[] = (voteRows ?? []).map((v) => {
+    const userRecord = v.users as unknown as {
+      display_name: string | null;
+      phone?: string | null;
+    } | null;
+    return {
+      side: v.side as "a" | "b",
+      display_name: userRecord?.display_name ?? null,
+      phone: userRecord?.phone ?? null,
+      voted_at: v.created_at,
+      // A null embed is a refused read, not a nameless voter.
+      profile_readable: userRecord !== null,
+    };
+  });
+
+  const unreadable = countUnreadableProfiles(rawVoters);
+  if (unreadable > 0) {
+    console.error(
+      `Result image for ${slug}: ${unreadable}/${rawVoters.length} profile rows ` +
+        "were unreadable, so those voters fall back to \"Anonymous #N\" " +
+        "regardless of whether they have a name. This is a permissions " +
+        "failure, not anonymity. Check migration 00002 and " +
+        "SUPABASE_SERVICE_ROLE_KEY.",
+    );
+  }
+
+  const labeled = resolveVoterLabels(rawVoters);
+  const sideAVoters = labeled.filter((v) => v.side === "a").map((v) => v.label);
+  const sideBVoters = labeled.filter((v) => v.side === "b").map((v) => v.label);
 
   const a = voteCountA ?? 0;
   const b = voteCountB ?? 0;
@@ -72,6 +160,17 @@ export async function GET(
     const shown = names.slice(0, 5).join(", ");
     return names.length > 5 ? `${shown} +${names.length - 5} more` : shown;
   };
+
+  // Satori throws on any <div> with more than one child that lacks an explicit
+  // display. Every text line below is precomputed into a SINGLE string child
+  // rather than interpolated inline — adding `display: flex` instead would make
+  // each text node its own flex item and drop the spaces between them.
+  const winnerLine = winnerName
+    ? `${winnerName} wins — ${Math.max(a, b)} to ${Math.min(a, b)}`
+    : null;
+  const totalLine = `${total} ${total === 1 ? "person voted" : "people voted"}`;
+  const tallyA = `${a} (${percentA}%)`;
+  const tallyB = `${b} (${percentB}%)`;
 
   return new ImageResponse(
     (
@@ -116,7 +215,7 @@ export async function GET(
         </div>
 
         {/* Winner callout */}
-        {winnerName && (
+        {winnerLine && (
           <div
             style={{
               fontSize: isStory ? 40 : 24,
@@ -127,7 +226,7 @@ export async function GET(
               borderRadius: 12,
             }}
           >
-            {winnerName} wins — {Math.max(a, b)} to {Math.min(a, b)}
+            {winnerLine}
           </div>
         )}
 
@@ -150,9 +249,7 @@ export async function GET(
               }}
             >
               <span>{squabble.side_a}</span>
-              <span>
-                {a} ({percentA}%)
-              </span>
+              <span>{tallyA}</span>
             </div>
             <div
               style={{
@@ -190,9 +287,7 @@ export async function GET(
               }}
             >
               <span>{squabble.side_b}</span>
-              <span>
-                {b} ({percentB}%)
-              </span>
+              <span>{tallyB}</span>
             </div>
             <div
               style={{
@@ -229,7 +324,7 @@ export async function GET(
             marginTop: isStory ? 60 : 20,
           }}
         >
-          {total} {total === 1 ? "person voted" : "people voted"}
+          {totalLine}
         </div>
       </div>
     ),

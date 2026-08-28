@@ -29,10 +29,13 @@ If no mode is specified, default to **medium**.
 
 Before starting any test run:
 
-1. **Ensure the dev server is running.** Use `preview_start` with command `pnpm dev` if not already running.
+0. **Copy `.env.local` into the worktree first** — it lives at `/Users/pranava/Projects/Settle/.env.local` and is NOT checked in, so a worktree without it starts a dev server that cannot reach Supabase. It has only the URL and anon key; `SUPABASE_SERVICE_ROLE_KEY` is absent, so expect masked-phone labels to degrade to `Anonymous #N` and expect `closeSquabble: UPDATE affected 0 rows` in the logs. Both are the local environment, not bugs.
+1. **Ensure the dev server is running.** Use `preview_start` with command `pnpm dev` if not already running. Pin an unusual port (several projects run in parallel here).
 2. **Read `issues.md`** to know the current highest issue number (to continue the sequence).
 3. **Note the current date** for issue timestamps.
 4. **Announce the run mode** and which personas will be tested.
+5. **Check whether any squabble is currently `open`.** As of 2026-08-28 all 25 live disputes are closed or expired, so the vote / countdown / lazy-close flows are untestable against real data. Create a disposable fixture (see "Fixtures" below) or the whole live-voting half of this checklist silently gets skipped.
+6. **Test the deployed app too, not just localhost** — `https://settle-ochre-eight.vercel.app`. Three of this project's worst bugs were only visible against a running server, and one (ISSUE-063) was live in production while every test passed.
 
 ---
 
@@ -348,7 +351,43 @@ After completing all test steps, output a summary:
 
 ---
 
+## Fixtures (learned 2026-08-28)
+
+There are no open squabbles in the live DB, so live-vote coverage needs one you make.
+
+1. Insert the dispute **open**, with `expires_at` in the future — the `enforce_vote_window` trigger
+   (migration 00007) blocks vote inserts on an already-expired squabble, including your own fixtures.
+2. Cast the votes.
+3. *Then* move `expires_at` into the past to exercise close behaviour.
+4. `delete from public.disputes where slug='<fixture>'` cascades the votes. Also delete the anonymous
+   `auth.users` row your own test vote created, then re-assert the baseline counts (25 disputes / 66
+   votes / 42 users) so the next run starts from a known state.
+
+The MCP SQL runner honours `BEGIN; … ROLLBACK;` (re-verified 2026-08-28: row visible in-transaction,
+0 rows after). Use that for read-only probes — but a browser UAT pass needs a **committed** row, so a
+rollback will not do.
+
+## Driving the browser in a non-interactive session (learned 2026-08-28)
+
+`computer` click/type actions fail with *"The Browser pane is currently hidden"* and burn a 30s timeout
+each. `navigate`, `read_page`, `get_page_text`, `preview_logs` and `javascript_tool` all work fine.
+Click via JS instead:
+
+```js
+[...document.querySelectorAll('button')].find(b => b.textContent.trim() === 'Yes it does').click()
+```
+
 ## Notes for the Tester
+
+- **Request the OG image routes explicitly — nothing else does.** `/s/{slug}/opengraph-image` and
+  `/api/og/result/{slug}` (also `?format=story`) render only when something asks for an image, so no
+  page view and no unit test exercises them. Both 500'd in production for an unknown period
+  (ISSUE-063). `curl -o /dev/null -w '%{http_code} %{content_type}'` on each is two seconds of work.
+  A satori failure returns an empty body with curl exit 52, which reads as a network blip — check the
+  server log for `failed to pipe response`.
+- **Read the accessibility tree, not the screenshot, for every icon-only control.** `read_page` names
+  an unlabelled button as bare `button [ref_N]`. That is how ISSUE-064 (download button) and ISSUE-055
+  (theme toggles) were both found; neither was visible in a screenshot.
 
 - **Do not skip edge cases** — the happy path usually works. Bugs live in edge cases.
 - **Check empty states** — every list/section should handle zero items gracefully.
