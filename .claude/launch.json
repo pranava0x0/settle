@@ -3,10 +3,9 @@
   "configurations": [
     {
       "name": "dev",
-      "runtimeExecutable": "/bin/zsh",
-      "runtimeArgs": ["-c", "export PATH=/Users/pranava/local/node/bin:$PATH && cd '/Users/pranava/Library/Mobile Documents/com~apple~CloudDocs/Coding Projects/Settle' && npx next dev --turbopack"],
-      "port": 3000,
-      "autoPort": true
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["dev", "--port", "3217"],
+      "port": 3217
     }
   ]
 }

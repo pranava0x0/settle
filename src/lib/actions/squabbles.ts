@@ -43,7 +43,26 @@ export async function createSquabble(input: CreateSquabbleInput) {
   redirect(ROUTES.SQUABBLE(slug));
 }
 
-export async function closeSquabble(squabbleId: string) {
+export type CloseSquabbleResult = {
+  status: "open" | "closed" | "expired";
+  winner_side: "a" | "b" | null;
+};
+
+/**
+ * Lazy close: write the outcome for an expired squabble.
+ *
+ * Returns the resulting status so callers can apply it to the row they already
+ * hold. They must NOT re-`select()` the same row to see the change: within one
+ * render pass Next.js memoizes identical GET fetches, so the second read can
+ * hand back the pre-update payload. That is how a closed squabble ended up
+ * rendering under "Live now" wearing a "Closed" badge.
+ *
+ * Returns null when nothing was written (not expired, already closed, or the
+ * write was refused).
+ */
+export async function closeSquabble(
+  squabbleId: string,
+): Promise<CloseSquabbleResult | null> {
   // Use admin client to bypass RLS — lazy close can be triggered by any visitor,
   // not just the creator, so the anon client's "creator can update" policy blocks it.
   // Fall back to regular client if service role key isn't configured (e.g. local dev).
@@ -63,11 +82,11 @@ export async function closeSquabble(squabbleId: string) {
 
   if (fetchError || !squabble) {
     console.error("closeSquabble fetch error:", fetchError?.message);
-    return;
+    return null;
   }
 
   if (squabble.status !== "open" || !isExpired(squabble.expires_at)) {
-    return;
+    return null;
   }
 
   // Count votes for each side
@@ -101,18 +120,34 @@ export async function closeSquabble(squabbleId: string) {
     winnerSide = votesA > votesB ? "a" : "b";
   }
 
-  const { error: updateError } = await db
+  // `select()` so the write reports rows-affected. An RLS policy that refuses
+  // this UPDATE returns 0 rows and NO error — without this check the caller
+  // would carry on believing the squabble was closed (ISSUE-021).
+  const { data: updated, error: updateError } = await db
     .from("disputes")
     .update({
       status,
       winner_side: winnerSide,
       closed_at: new Date().toISOString(),
     })
-    .eq("id", squabbleId);
+    .eq("id", squabbleId)
+    .select("id, status, winner_side");
 
   if (updateError) {
     console.error("closeSquabble update error:", updateError.message);
+    return null;
   }
+
+  if (!updated || updated.length === 0) {
+    console.error(
+      `closeSquabble: UPDATE affected 0 rows for ${squabbleId}. The squabble is ` +
+        "still marked open. Most likely an RLS policy refused the write and the " +
+        "service role key is unavailable — check SUPABASE_SERVICE_ROLE_KEY.",
+    );
+    return null;
+  }
+
+  return { status, winner_side: winnerSide };
 }
 
 export async function createRematch(originalSlug: string) {

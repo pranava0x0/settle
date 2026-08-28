@@ -3,11 +3,19 @@ import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
+  countUnreadableProfiles,
   resolveVoterLabels,
   type LabeledVoter,
   type RawVoter,
 } from "@/lib/voter-identity";
 import { isExpired } from "@/lib/utils";
+import {
+  didVoterWin,
+  resolveSquabbleStatus,
+  STATUS_BADGE_CLASSES,
+} from "@/lib/squabble-status";
+import { cn } from "@/lib/utils";
+import { formatVoteCount } from "@/lib/formatters";
 import { closeSquabble } from "@/lib/actions/squabbles";
 import { APP_NAME } from "@/lib/constants";
 import {
@@ -87,37 +95,39 @@ export default async function SquabblePage({ params, searchParams }: PageProps) 
     notFound();
   }
 
-  // Lazy close: if expired but still marked open, close it now
+  // Lazy close: if expired but still marked open, close it now.
+  //
+  // Apply the returned outcome directly. Re-selecting the same row here can be
+  // served from Next.js request memoization and hand back the pre-close payload,
+  // which would render a settled squabble as still open.
   if (squabble.status === "open" && isExpired(squabble.expires_at)) {
-    await closeSquabble(squabble.id);
-    // Re-fetch to get updated status
-    const { data: updated } = await supabase
-      .from("disputes")
-      .select("*")
-      .eq("slug", slug)
-      .single();
-    if (updated) {
-      Object.assign(squabble, updated);
+    const outcome = await closeSquabble(squabble.id);
+    if (outcome) {
+      squabble.status = outcome.status;
+      squabble.winner_side = outcome.winner_side;
     }
   }
 
-  // Get vote counts
-  const { count: voteCountA } = await supabase
-    .from("votes")
-    .select("*", { count: "exact", head: true })
-    .eq("dispute_id", squabble.id)
-    .eq("side", "a");
+  // The two vote counts and the session are independent of one another, so they
+  // go out together. Awaited in sequence they were three round trips stacked
+  // end to end, and this page's latency is almost entirely round trips.
+  const [countAResult, countBResult, userResult] = await Promise.all([
+    supabase
+      .from("votes")
+      .select("*", { count: "exact", head: true })
+      .eq("dispute_id", squabble.id)
+      .eq("side", "a"),
+    supabase
+      .from("votes")
+      .select("*", { count: "exact", head: true })
+      .eq("dispute_id", squabble.id)
+      .eq("side", "b"),
+    supabase.auth.getUser(),
+  ]);
 
-  const { count: voteCountB } = await supabase
-    .from("votes")
-    .select("*", { count: "exact", head: true })
-    .eq("dispute_id", squabble.id)
-    .eq("side", "b");
-
-  // Check current user's vote and anonymous status
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const voteCountA = countAResult.count;
+  const voteCountB = countBResult.count;
+  const user = userResult.data.user;
 
   const isAnonymous = user?.is_anonymous ?? false;
 
@@ -155,6 +165,14 @@ export default async function SquabblePage({ params, searchParams }: PageProps) 
   const expired = isExpired(squabble.expires_at);
   const isClosed = squabble.status !== "open";
   const showResults = isClosed || expired;
+
+  // Same resolver the dashboard and the cards use, so the badge here can't say
+  // "Closed" while the card for the same squabble says "No winner".
+  const pageStatus = resolveSquabbleStatus({
+    status: squabble.status,
+    winnerSide: squabble.winner_side as "a" | "b" | null,
+    expiresAt: squabble.expires_at,
+  });
 
   // Fetch voter breakdown — creator always, other voters after close
   const isCreator = user?.id === squabble.creator_id;
@@ -201,8 +219,24 @@ export default async function SquabblePage({ params, searchParams }: PageProps) 
           display_name: userRecord?.display_name ?? null,
           phone: userRecord?.phone ?? null,
           voted_at: v.created_at,
+          // A null embed is a refused read, not a nameless voter. Without this
+          // distinction an RLS block renders as "everyone is anonymous".
+          profile_readable: userRecord !== null,
         };
       });
+
+      const unreadable = countUnreadableProfiles(rawVoters);
+      if (unreadable > 0) {
+        console.error(
+          `Voter breakdown for ${slug}: ${unreadable}/${rawVoters.length} profile ` +
+            "rows were unreadable, so those voters fall back to \"Anonymous #N\" " +
+            "regardless of whether they have a name. This is a permissions " +
+            "failure, not anonymity. Check that migration 00002 " +
+            "(\"Authenticated users can read profiles\") is applied and that " +
+            "SUPABASE_SERVICE_ROLE_KEY is set.",
+        );
+      }
+
       voters = resolveVoterLabels(rawVoters);
     }
   }
@@ -218,15 +252,11 @@ export default async function SquabblePage({ params, searchParams }: PageProps) 
         <CardHeader className="text-center">
           <div className="mb-2 flex items-center justify-center gap-2">
             <Badge
-              variant={
-                squabble.status === "open" ? "default" : "secondary"
-              }
+              variant={pageStatus.settled ? "secondary" : "default"}
+              data-status={pageStatus.key}
+              className={cn(STATUS_BADGE_CLASSES[pageStatus.key])}
             >
-              {squabble.status === "open"
-                ? "Live"
-                : squabble.status === "closed"
-                  ? "Decided"
-                  : "Closed"}
+              {pageStatus.label}
             </Badge>
             {!isClosed && !expired && (
               <CountdownTimer expiresAt={squabble.expires_at} />
@@ -247,7 +277,7 @@ export default async function SquabblePage({ params, searchParams }: PageProps) 
               />
               {userVote && squabble.winner_side && (
                 <WinnerCelebration
-                  userWon={userVote === squabble.winner_side}
+                  userWon={didVoterWin(userVote, squabble.winner_side as "a" | "b" | null)}
                   winnerSide={squabble.winner_side as "a" | "b"}
                   sideA={squabble.side_a}
                   sideB={squabble.side_b}
@@ -267,7 +297,7 @@ export default async function SquabblePage({ params, searchParams }: PageProps) 
                 </p>
               ) : totalVotes > 0 && !showDeciderBanner ? (
                 <p className="text-muted-foreground text-center text-sm">
-                  {totalVotes} {totalVotes === 1 ? "vote" : "votes"} so far
+                  {formatVoteCount(totalVotes)} so far
                 </p>
               ) : null}
               <VoteButtons

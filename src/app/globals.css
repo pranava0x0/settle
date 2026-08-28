@@ -196,14 +196,14 @@
 }
 
 /* Red corner / Blue corner vote buttons */
-.theme-ring .grid-cols-2 > button:first-child {
+.theme-ring [data-vote-side="a"] {
   background: var(--ring-red) !important;
   color: white !important;
   border-color: #991b1b !important;
   font-weight: 700;
 }
 
-.theme-ring .grid-cols-2 > button:last-child {
+.theme-ring [data-vote-side="b"] {
   background: var(--ring-blue) !important;
   color: white !important;
   border-color: #1e40af !important;
@@ -211,15 +211,11 @@
 }
 
 /* Vote bars: red vs blue corners */
-.theme-ring .rounded-full .rounded-full:first-child {
+.theme-ring [data-bar-side="a"] {
   background: var(--ring-red) !important;
 }
 
-.theme-ring .space-y-3 > div:first-child .rounded-full .rounded-full {
-  background: var(--ring-red) !important;
-}
-
-.theme-ring .space-y-3 > div:last-child .rounded-full .rounded-full {
+.theme-ring [data-bar-side="b"] {
   background: var(--ring-blue) !important;
 }
 
@@ -330,7 +326,7 @@
 }
 
 /* Lava-colored vote buttons */
-.theme-molten .grid-cols-2 > button:first-child {
+.theme-molten [data-vote-side="a"] {
   background: var(--molten-lava) !important;
   color: white !important;
   border-color: var(--molten-red) !important;
@@ -338,7 +334,7 @@
   animation: lava-breathe 3s ease-in-out infinite;
 }
 
-.theme-molten .grid-cols-2 > button:last-child {
+.theme-molten [data-vote-side="b"] {
   background: var(--molten-red) !important;
   color: white !important;
   border-color: #8b0000 !important;
@@ -352,20 +348,23 @@
 }
 
 /* Lava vote bars */
-.theme-molten .space-y-3 > div:first-child .rounded-full .rounded-full {
+.theme-molten [data-bar-side="a"] {
   background: linear-gradient(90deg, var(--molten-red), var(--molten-lava)) !important;
 }
 
-.theme-molten .space-y-3 > div:last-child .rounded-full .rounded-full {
+.theme-molten [data-bar-side="b"] {
   background: linear-gradient(90deg, var(--molten-glow), var(--molten-red)) !important;
 }
 
 /* Heat shimmer background */
+/* No `filter: blur()` here. Blurring the card blurs its text, and this runs
+   infinitely — it made every squabble permanently slightly out of focus and
+   forced a GPU repaint of the whole card on a loop. Motion only. */
 @keyframes heat-shimmer {
-  0%, 100% { transform: translateY(0) scaleX(1); filter: blur(0px); }
-  25% { transform: translateY(-1px) scaleX(1.001); filter: blur(0.3px); }
-  50% { transform: translateY(1px) scaleX(0.999); filter: blur(0.5px); }
-  75% { transform: translateY(-0.5px) scaleX(1.001); filter: blur(0.2px); }
+  0%, 100% { transform: translateY(0) scaleX(1); }
+  25% { transform: translateY(-1px) scaleX(1.001); }
+  50% { transform: translateY(1px) scaleX(0.999); }
+  75% { transform: translateY(-0.5px) scaleX(1.001); }
 }
 
 .theme-molten [data-slot="card"] {
@@ -486,7 +485,7 @@
 }
 
 /* Meteor vote buttons */
-.theme-impact .grid-cols-2 > button:first-child {
+.theme-impact [data-vote-side="a"] {
   background: var(--impact-blue) !important;
   color: #0a0a0f !important;
   border-color: #0099cc !important;
@@ -495,7 +494,7 @@
   overflow: hidden;
 }
 
-.theme-impact .grid-cols-2 > button:first-child::after {
+.theme-impact [data-vote-side="a"]::after {
   content: '';
   position: absolute;
   right: -10px;
@@ -508,7 +507,7 @@
   animation: trail-pulse 2s ease-in-out infinite;
 }
 
-.theme-impact .grid-cols-2 > button:last-child {
+.theme-impact [data-vote-side="b"] {
   background: var(--impact-orange) !important;
   color: #0a0a0f !important;
   border-color: #cc7000 !important;
@@ -517,7 +516,7 @@
   overflow: hidden;
 }
 
-.theme-impact .grid-cols-2 > button:last-child::after {
+.theme-impact [data-vote-side="b"]::after {
   content: '';
   position: absolute;
   left: -10px;
@@ -536,12 +535,12 @@
 }
 
 /* Meteor vote bars */
-.theme-impact .space-y-3 > div:first-child .rounded-full .rounded-full {
+.theme-impact [data-bar-side="a"] {
   background: linear-gradient(90deg, var(--impact-blue), #66d9ff) !important;
   box-shadow: 0 0 10px rgba(0,191,255,0.5);
 }
 
-.theme-impact .space-y-3 > div:last-child .rounded-full .rounded-full {
+.theme-impact [data-bar-side="b"] {
   background: linear-gradient(270deg, var(--impact-orange), #ffb347) !important;
   box-shadow: 0 0 10px rgba(255,140,0,0.5);
 }
@@ -575,23 +574,72 @@
   box-shadow: 0 0 30px rgba(255,140,0,0.2), 0 0 60px rgba(0,191,255,0.1);
 }
 
-/* Winner badge styling per theme */
+/* ============================================================
+   STATUS BADGES
+   ------------------------------------------------------------
+   The themes used to repaint EVERY [data-slot="badge"] a single
+   accent colour, so "Live", "Decided" and "No winner" came out as
+   identical pills and the badge stopped carrying any information —
+   colour was decoration instead of data.
+
+   Status colour is now keyed off `data-status`, which
+   `resolveSquabbleStatus` sets, and the theme only supplies the hue
+   for the one state it wants to shout about (live). Every state
+   stays distinguishable without relying on colour alone: the label
+   text differs too.
+   ============================================================ */
+
+/* Status badge COLOUR lives in STATUS_BADGE_CLASSES (src/lib/squabble-status.ts),
+   not here. The Badge already ships a `bg-*` utility from its variant, and
+   overriding that from a stylesheet meant depending on cascade-layer ordering
+   that did not hold — every status rendered identically in all three themes.
+   Passing classes lets twMerge drop the conflicting utility outright.
+
+   What themes still control are the hues below, consumed via var() in those
+   classes. A theme that sets nothing falls back to the base tokens. */
+
+
 .theme-ring [data-slot="badge"] {
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
-.theme-molten [data-slot="badge"] {
-  background: var(--molten-lava) !important;
-  color: white !important;
-  border: none !important;
+
+
+.theme-molten [data-slot="badge"][data-status="live"] {
   box-shadow: 0 0 10px rgba(255,107,0,0.4);
 }
 
-.theme-impact [data-slot="badge"] {
-  background: var(--impact-blue) !important;
-  color: #0a0a0f !important;
-  border: none !important;
+
+.theme-impact [data-slot="badge"][data-status="live"] {
   box-shadow: 0 0 10px rgba(0,191,255,0.3);
+}
+
+/* ============================================================
+   REDUCED MOTION
+   ------------------------------------------------------------
+   Every theme ran infinite animations — heat shimmer on each card,
+   breathing vote buttons, a drifting starfield, bubbling timers —
+   with no escape hatch. That is a WCAG 2.3.3 problem and it pins
+   the GPU on a phone. Honour the OS setting: keep the colour, drop
+   the perpetual movement. One-shot feedback (vote pop, bar fill) is
+   collapsed rather than removed, so the UI still lands in the right
+   final state.
+   ============================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .animate-bar-fill {
+    /* The fill animation carries the width; without it the bar reads 0%. */
+    width: var(--bar-width);
+  }
 }

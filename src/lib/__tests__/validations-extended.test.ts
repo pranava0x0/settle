@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { DURATION_LIMITS } from "@/lib/constants";
 import {
   createSquabbleSchema,
   castVoteSchema,
@@ -174,5 +175,61 @@ describe("otpSchema — edge cases", () => {
 
   it("accepts all-nines", () => {
     expect(otpSchema.safeParse("999999").success).toBe(true);
+  });
+});
+
+describe("custom duration parsing (create form)", () => {
+  // The create form reads its custom-minutes box with Number(), not parseInt().
+  // <input type="number"> accepts scientific notation, and parseInt("1e2") is 1
+  // — so typing 100 would have quietly created a ONE minute squabble. These pin
+  // the predicate the form actually uses.
+  const parseCustomMinutes = (raw: string): number | null => {
+    const value = Number(raw);
+    const valid =
+      raw.trim() !== "" &&
+      Number.isInteger(value) &&
+      value >= DURATION_LIMITS.MIN_MINUTES &&
+      value <= DURATION_LIMITS.MAX_MINUTES;
+    return valid ? value : null;
+  };
+
+  it("reads scientific notation as the number the user meant", () => {
+    expect(parseCustomMinutes("1e2")).toBe(100);
+    expect(parseCustomMinutes("1.5e3")).toBe(1500);
+  });
+
+  it("reads ordinary integers", () => {
+    expect(parseCustomMinutes("90")).toBe(90);
+    expect(parseCustomMinutes(" 90 ")).toBe(90);
+  });
+
+  it("rejects values outside the schema's own bounds", () => {
+    expect(parseCustomMinutes(String(DURATION_LIMITS.MIN_MINUTES - 1))).toBeNull();
+    expect(parseCustomMinutes(String(DURATION_LIMITS.MAX_MINUTES + 1))).toBeNull();
+  });
+
+  it("accepts exactly the boundary values the schema accepts", () => {
+    expect(parseCustomMinutes(String(DURATION_LIMITS.MIN_MINUTES))).toBe(
+      DURATION_LIMITS.MIN_MINUTES,
+    );
+    expect(parseCustomMinutes(String(DURATION_LIMITS.MAX_MINUTES))).toBe(
+      DURATION_LIMITS.MAX_MINUTES,
+    );
+    // And the server agrees, so the button is never enabled for a value the
+    // action would reject.
+    expect(
+      createSquabbleSchema.safeParse({
+        question: "Long enough",
+        side_a: "a",
+        side_b: "b",
+        duration_minutes: DURATION_LIMITS.MAX_MINUTES,
+      }).success,
+    ).toBe(true);
+  });
+
+  it("rejects fractions and empty input", () => {
+    expect(parseCustomMinutes("1.5")).toBeNull();
+    expect(parseCustomMinutes("")).toBeNull();
+    expect(parseCustomMinutes("   ")).toBeNull();
   });
 });

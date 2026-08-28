@@ -7,7 +7,12 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ROUTES } from "@/lib/constants";
-import { isExpired } from "@/lib/utils";
+import {
+  resolveSquabbleStatus,
+  STATUS_BADGE_CLASSES,
+} from "@/lib/squabble-status";
+import { formatVoteCount } from "@/lib/formatters";
+import { cn } from "@/lib/utils";
 
 type SquabbleCardProps = {
   slug: string;
@@ -32,18 +37,14 @@ export const SquabbleCard = ({
   userVoteSide,
   voteCount,
 }: SquabbleCardProps) => {
-  const expired = isExpired(expiresAt);
-  const settled = status !== "open";
+  // Same resolver the dashboard buckets with — badge and bucket cannot disagree.
+  const { key: statusKey, label: statusLabel, settled } = resolveSquabbleStatus({
+    status,
+    winnerSide,
+    expiresAt,
+  });
 
-  const statusLabel = settled
-    ? winnerSide
-      ? "Decided"
-      : "No winner"
-    : expired
-      ? "Closed"
-      : "Live";
-
-  const statusVariant = settled || expired ? "secondary" : "default";
+  const statusVariant = settled ? "secondary" : "default";
 
   return (
     <Link href={ROUTES.SQUABBLE(slug)}>
@@ -51,7 +52,11 @@ export const SquabbleCard = ({
         <CardHeader className="pb-2">
           <div className="flex items-start justify-between gap-2">
             <CardTitle className="text-base leading-snug">{question}</CardTitle>
-            <Badge variant={statusVariant} className="shrink-0 text-xs">
+            <Badge
+              variant={statusVariant}
+              data-status={statusKey}
+              className={cn("shrink-0 text-xs", STATUS_BADGE_CLASSES[statusKey])}
+            >
               {statusLabel}
             </Badge>
           </div>
@@ -70,7 +75,7 @@ export const SquabbleCard = ({
             )}
             {voteCount !== undefined && (
               <p className="text-muted-foreground text-xs">
-                {voteCount} {voteCount === 1 ? "vote" : "votes"}
+                {formatVoteCount(voteCount)}
               </p>
             )}
           </div>

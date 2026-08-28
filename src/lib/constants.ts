@@ -2,6 +2,14 @@ export const APP_NAME = "Squabble";
 export const APP_DESCRIPTION =
   "Got a squabble? Drop it, send the link, and let the votes do the talking.";
 
+/**
+ * Navigation + page copy. Kept here so the nav link and the page it leads to
+ * can't drift apart (the nav said "My debates" while the app is called
+ * Squabble and every other surface says "squabble").
+ */
+export const NAV_DASHBOARD_LABEL = "My Squabbles";
+export const DASHBOARD_HEADING = "Your Squabbles";
+
 export const SQUABBLE_STATUS = {
   OPEN: "open",
   CLOSED: "closed",
@@ -25,7 +33,33 @@ export const TIMER_PRESETS = [
   { label: "24 hours", value: 1440 },
 ] as const;
 
+/**
+ * Bar colours for the two sides of a live tally.
+ *
+ * Both bars used to be `bg-blue-500`, so while voting was still open the only
+ * thing telling the sides apart was the label above them — the chart carried no
+ * information of its own. Blue/amber is the pairing that survives the common
+ * red-green colour vision deficiencies; the labels stay in place regardless, so
+ * colour is reinforcement rather than the sole channel.
+ *
+ * Themes override these via `[data-bar-side]` in globals.css.
+ */
+export const SIDE_BAR_COLORS = {
+  a: "bg-blue-500",
+  b: "bg-amber-500",
+} as const;
+
 export const SLUG_LENGTH = 8;
+
+/**
+ * Duration bounds. Mirrors `createSquabbleSchema.duration_minutes` — the create
+ * form validates against these so the client and the server agree on the range
+ * instead of the form re-typing 1 and 10080 inline.
+ */
+export const DURATION_LIMITS = {
+  MIN_MINUTES: 1,
+  MAX_MINUTES: 10080,
+} as const;
 
 export const ROUTES = {
   HOME: "/",

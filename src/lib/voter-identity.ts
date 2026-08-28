@@ -26,6 +26,17 @@ export type RawVoter = {
   display_name: string | null;
   phone: string | null;
   voted_at: string;
+  /**
+   * Whether the voter's profile row came back at all.
+   *
+   * A voter with no name and a voter whose profile we were *refused* both
+   * arrive here as `display_name: null`, and both used to render "Anonymous".
+   * That is how every name on the page silently became "Anonymous #N" when the
+   * profile read was blocked — a broken query is indistinguishable from a room
+   * full of anonymous voters unless the two are tracked apart. Callers set this
+   * to false when the join returned no row, and log that separately.
+   */
+  profile_readable: boolean;
 };
 
 export type LabeledVoter = {
@@ -33,6 +44,17 @@ export type LabeledVoter = {
   label: string;
   voted_at: string;
 };
+
+/**
+ * How many voters had an unreadable profile row.
+ *
+ * Non-zero means the voter-identity read is degraded (RLS policy, column
+ * grant, or a missing service role key) — not that those people are anonymous.
+ * Callers must log this loudly rather than rendering the degraded labels as if
+ * they were the truth.
+ */
+export const countUnreadableProfiles = (voters: RawVoter[]): number =>
+  voters.filter((voter) => !voter.profile_readable).length;
 
 /** Last 4 digits only, e.g. "+15551234567" -> "••• 4567". Null if unusable. */
 export const maskPhone = (phone: string | null | undefined): string | null => {

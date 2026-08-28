@@ -3,7 +3,7 @@
 import { useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { updateDisplayName, sendOtp, verifyOtp, upgradeAnonymousUser } from "@/lib/actions/auth";
+import { updateDisplayName, sendOtp, upgradeAnonymousUser } from "@/lib/actions/auth";
 
 type PostVotePromptProps = {
   onDone: () => void;
