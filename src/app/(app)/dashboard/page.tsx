@@ -21,12 +21,25 @@ export default async function DashboardPage() {
     redirect(ROUTES.LOGIN);
   }
 
-  // Check if user has set a display name
-  const { data: profile } = await supabase
+  // Check if user has set a display name, and whether they opted out of texts.
+  const { data: profile, error: profileError } = await supabase
     .from("users")
     .select("display_name, sms_opt_out")
     .eq("id", user.id)
     .single();
+
+  if (profileError) {
+    // Do not let this fail quietly. A failed read makes `profile` null, which
+    // renders exactly like "this user has no name yet" — so someone who set a
+    // name months ago would be shown the name prompt again with no clue why.
+    // The likeliest cause is `sms_opt_out` not existing because migration 00008
+    // has not been applied to whichever database this is pointed at.
+    console.error(
+      "Dashboard profile read failed:",
+      profileError.message,
+      "- the display-name prompt and the SMS switch will both show defaults.",
+    );
+  }
 
   const needsDisplayName = !profile?.display_name;
   // Only accounts with a verified phone can receive result texts, so only they
