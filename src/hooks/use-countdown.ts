@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { formatCountdown } from "@/lib/formatters";
 
 export function useCountdown(expiresAt: string) {
   const [timeRemaining, setTimeRemaining] = useState(() =>
@@ -29,13 +30,7 @@ export function useCountdown(expiresAt: string) {
   const minutes = Math.floor((timeRemaining % (1000 * 60 * 60)) / (1000 * 60));
   const seconds = Math.floor((timeRemaining % (1000 * 60)) / 1000);
 
-  const totalMinutes = hours * 60 + minutes;
-  const formatted =
-    totalMinutes < 5
-      ? `${String(totalMinutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`
-      : hours > 0
-        ? `${hours}h ${minutes}m`
-        : `${minutes}m`;
+  const formatted = formatCountdown(hours, minutes, seconds);
 
   return { timeRemaining, isExpired, hours, minutes, seconds, formatted };
 }

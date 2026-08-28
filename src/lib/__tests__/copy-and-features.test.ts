@@ -1,5 +1,18 @@
 import { describe, it, expect } from "vitest";
 import { APP_NAME, APP_DESCRIPTION, TIMER_PRESETS } from "@/lib/constants";
+import { didVoterWin, resolveSquabbleStatus } from "@/lib/squabble-status";
+import {
+  formatCountdown,
+  formatOthersAgree,
+  formatScoreline,
+  formatVoteCount,
+  formatVoterCount,
+  getEmbeddedVoteCount,
+  votePercentages,
+} from "@/lib/formatters";
+
+const FUTURE = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+const PAST = new Date(Date.now() - 60 * 60 * 1000).toISOString();
 
 describe("App copy", () => {
   it("APP_NAME is Squabble", () => {
@@ -35,123 +48,81 @@ describe("OG metadata for squabble pages", () => {
 });
 
 describe("OG image vote tally display", () => {
-  it("shows individual vote counts for each side", () => {
-    const voteCountA = 5;
-    const voteCountB = 3;
-    const totalVotes = voteCountA + voteCountB;
-    expect(totalVotes).toBe(8);
-    expect(`${totalVotes} votes`).toBe("8 votes");
+  it("pluralises the tally through the shipped formatter", () => {
+    expect(formatVoteCount(8)).toBe("8 votes");
+    expect(formatVoteCount(1)).toBe("1 vote");
+    expect(formatVoteCount(0)).toBe("0 votes");
   });
 
-  it("shows singular 'vote' for exactly 1 total", () => {
-    const totalVotes = 1;
-    const text = `${totalVotes} ${totalVotes === 1 ? "vote" : "votes"}`;
-    expect(text).toBe("1 vote");
-  });
-
-  it("shows Live badge when squabble is open", () => {
-    const status = "open";
-    const label = status !== "open" ? "Decided" : "Live";
-    expect(label).toBe("Live");
-  });
-
-  it("shows Decided badge when squabble is closed", () => {
-    const status = "closed";
-    const label = status !== "open" ? "Decided" : "Live";
-    expect(label).toBe("Decided");
+  it("labels a squabble by its resolved status, not a local copy", () => {
+    expect(
+      resolveSquabbleStatus({ status: "open", winnerSide: null, expiresAt: FUTURE }).label,
+    ).toBe("Live");
+    expect(
+      resolveSquabbleStatus({ status: "closed", winnerSide: "a", expiresAt: PAST }).label,
+    ).toBe("Decided");
   });
 });
 
 describe("SquabbleResults winner format", () => {
-  it("produces correct scoreline with side A winning", () => {
-    const voteCountA = 7;
-    const voteCountB = 3;
-    const winnerSide = "a" as const;
-    const sideA = "Pizza";
-
-    const high = voteCountA > voteCountB ? voteCountA : voteCountB;
-    const low = voteCountA > voteCountB ? voteCountB : voteCountA;
-    const winnerName = winnerSide === "a" ? sideA : "Tacos";
-
-    expect(winnerName).toBe("Pizza");
-    expect(high).toBe(7);
-    expect(low).toBe(3);
+  it("builds the scoreline with side A winning", () => {
+    expect(formatScoreline("a", "Pizza", "Tacos", 7, 3)).toBe("Pizza wins \u2014 7 to 3");
   });
 
-  it("produces correct scoreline with side B winning", () => {
-    const voteCountA = 2;
-    const voteCountB = 5;
-    const winnerSide = "b" as const;
-    const sideB = "Tacos";
-
-    const high = voteCountA > voteCountB ? voteCountA : voteCountB;
-    const low = voteCountA > voteCountB ? voteCountB : voteCountA;
-    const winnerName = winnerSide === "b" ? sideB : "Pizza";
-
-    expect(winnerName).toBe("Tacos");
-    expect(high).toBe(5);
-    expect(low).toBe(2);
+  it("builds the scoreline with side B winning", () => {
+    expect(formatScoreline("b", "Pizza", "Tacos", 2, 5)).toBe("Tacos wins \u2014 5 to 2");
   });
 
-  it("handles tie case with no winner", () => {
-    const voteCountA = 4;
-    const voteCountB = 4;
-    const winnerSide = null;
-
-    expect(winnerSide).toBeNull();
-    expect(voteCountA).toBe(voteCountB);
+  it("always puts the higher count first regardless of which side won", () => {
+    // Guards the ordering, not a hand-typed string: the winner's count leads.
+    const line = formatScoreline("b", "Pizza", "Tacos", 2, 5);
+    const [high, low] = line.split(" \u2014 ")[1].split(" to ").map(Number);
+    expect(high).toBeGreaterThan(low);
   });
 
-  it("handles zero votes", () => {
-    const totalVotes = 0;
-    expect(totalVotes).toBe(0);
+  it("calculates percentages", () => {
+    expect(votePercentages(7, 3)).toEqual({ percentA: 70, percentB: 30 });
   });
 
-  it("calculates percentages correctly", () => {
-    const voteCountA = 7;
-    const voteCountB = 3;
-    const totalVotes = voteCountA + voteCountB;
-
-    const percentA = totalVotes > 0 ? Math.round((voteCountA / totalVotes) * 100) : 0;
-    const percentB = totalVotes > 0 ? Math.round((voteCountB / totalVotes) * 100) : 0;
-
-    expect(percentA).toBe(70);
-    expect(percentB).toBe(30);
+  it("returns zeroes rather than NaN when nobody has voted", () => {
+    // 0/0 is NaN, and `width: NaN%` collapses the bar with no error.
+    expect(votePercentages(0, 0)).toEqual({ percentA: 0, percentB: 0 });
   });
 
-  it("handles zero total votes for percentages", () => {
-    const voteCountA = 0;
-    const voteCountB = 0;
-    const totalVotes = voteCountA + voteCountB;
-
-    const percentA = totalVotes > 0 ? Math.round((voteCountA / totalVotes) * 100) : 0;
-    const percentB = totalVotes > 0 ? Math.round((voteCountB / totalVotes) * 100) : 0;
-
-    expect(percentA).toBe(0);
-    expect(percentB).toBe(0);
+  it("splits a tie evenly", () => {
+    expect(votePercentages(4, 4)).toEqual({ percentA: 50, percentB: 50 });
   });
 });
 
 describe("SquabbleCard status labels", () => {
-  const getStatusLabel = (status: string, winnerSide: "a" | "b" | null) => {
-    const settled = status !== "open";
-    return settled
-      ? winnerSide
-        ? "Decided"
-        : "No winner"
-      : "Live";
-  };
-
-  it("shows 'Decided' when squabble has a winner", () => {
-    expect(getStatusLabel("closed", "a")).toBe("Decided");
+  it("shows 'Decided' when the squabble has a winner", () => {
+    expect(
+      resolveSquabbleStatus({ status: "closed", winnerSide: "a", expiresAt: PAST }).label,
+    ).toBe("Decided");
   });
 
-  it("shows 'No winner' when no winner", () => {
-    expect(getStatusLabel("expired", null)).toBe("No winner");
+  it("shows 'No winner' when it settled without one", () => {
+    expect(
+      resolveSquabbleStatus({ status: "expired", winnerSide: null, expiresAt: PAST }).label,
+    ).toBe("No winner");
   });
 
-  it("shows 'Live' when voting is open", () => {
-    expect(getStatusLabel("open", null)).toBe("Live");
+  it("shows 'Live' while voting is open", () => {
+    expect(
+      resolveSquabbleStatus({ status: "open", winnerSide: null, expiresAt: FUTURE }).label,
+    ).toBe("Live");
+  });
+
+  it("does not call an expired-but-open squabble Live", () => {
+    // The dashboard bucketed on status while the badge read the clock, so this
+    // row sat under "Live now" wearing a "Closed" badge.
+    const resolved = resolveSquabbleStatus({
+      status: "open",
+      winnerSide: null,
+      expiresAt: PAST,
+    });
+    expect(resolved.label).not.toBe("Live");
+    expect(resolved.settled).toBe(true);
   });
 });
 
@@ -211,134 +182,75 @@ describe("VoterBreakdown filtering", () => {
   });
 
   it("returns empty array when no voters for a side", () => {
-    const sideAOnly = voters.filter((v) => v.side === "a");
-    const sideCVoters = sideAOnly.filter((v) => v.side === "b");
-    expect(sideCVoters).toHaveLength(0);
+    const sideAOnly: Array<{ side: string }> = voters.filter((v) => v.side === "a");
+    expect(sideAOnly.filter((v) => v.side === "b")).toHaveLength(0);
   });
 });
 
 describe("SquabbleCard vote count badge", () => {
-  const formatVoteCount = (count: number) =>
-    `${count} ${count === 1 ? "vote" : "votes"}`;
-
-  it("shows '1 vote' (singular) for exactly 1 vote", () => {
+  it("pluralises vote counts", () => {
     expect(formatVoteCount(1)).toBe("1 vote");
-  });
-
-  it("shows '0 votes' (plural) for zero votes", () => {
     expect(formatVoteCount(0)).toBe("0 votes");
-  });
-
-  it("shows '5 votes' (plural) for multiple votes", () => {
     expect(formatVoteCount(5)).toBe("5 votes");
   });
 
-  it("extracts count from Supabase embedded count shape", () => {
-    const d = { votes: [{ count: 7 }] };
-    const count = d.votes?.[0]?.count ?? 0;
-    expect(count).toBe(7);
+  it("reads Supabase's embedded count shape", () => {
+    expect(getEmbeddedVoteCount({ votes: [{ count: 7 }] })).toBe(7);
   });
 
-  it("defaults to 0 when votes array is empty", () => {
-    const d = { votes: [] as Array<{ count: number }> };
-    const count = d.votes?.[0]?.count ?? 0;
-    expect(count).toBe(0);
+  it("returns 0 for a squabble with no votes", () => {
+    expect(getEmbeddedVoteCount({ votes: [] })).toBe(0);
   });
 
-  it("defaults to 0 when votes field is undefined", () => {
-    const d: { votes?: Array<{ count: number }> } = {};
-    const count = d.votes?.[0]?.count ?? 0;
-    expect(count).toBe(0);
+  it("returns 0 when the embed is absent", () => {
+    expect(getEmbeddedVoteCount({})).toBe(0);
   });
 });
 
 describe("Countdown timer formatting", () => {
-  const formatCountdown = (hours: number, minutes: number, seconds: number) => {
-    const totalMinutes = hours * 60 + minutes;
-    return totalMinutes < 5
-      ? `${String(totalMinutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`
-      : hours > 0
-        ? `${hours}h ${minutes}m`
-        : `${minutes}m`;
-  };
-
-  it("shows MM:SS format when under 5 minutes", () => {
+  it("shows MM:SS under 5 minutes", () => {
     expect(formatCountdown(0, 4, 30)).toBe("04:30");
     expect(formatCountdown(0, 0, 45)).toBe("00:45");
     expect(formatCountdown(0, 3, 12)).toBe("03:12");
   });
 
-  it("shows hours and minutes when >= 5 minutes", () => {
+  it("shows hours and minutes at 5 minutes and above", () => {
     expect(formatCountdown(1, 23, 0)).toBe("1h 23m");
     expect(formatCountdown(0, 30, 15)).toBe("30m");
     expect(formatCountdown(0, 5, 0)).toBe("5m");
   });
 
-  it("pads MM:SS correctly at boundaries", () => {
+  it("pads MM:SS at the boundaries", () => {
     expect(formatCountdown(0, 4, 59)).toBe("04:59");
     expect(formatCountdown(0, 0, 1)).toBe("00:01");
   });
 });
 
 describe("VoteButtons copy", () => {
-  it("button labels show side names directly", () => {
-    const sideA = "Pizza";
-    const sideB = "Tacos";
-    expect(sideA).toBe("Pizza");
-    expect(sideB).toBe("Tacos");
+  it("pluralises the agreement line", () => {
+    expect(formatOthersAgree(5)).toBe("4 others agree");
+    expect(formatOthersAgree(2)).toBe("1 other agrees");
   });
 
-  it("post-vote confirmation shows 'Your vote: [Side]'", () => {
-    const sideA = "Pizza";
-    expect(`Your vote: ${sideA}`).toBe("Your vote: Pizza");
+  it("returns null when the voter is alone on their side", () => {
+    // null, not "", so the caller can't render a dangling separator.
+    expect(formatOthersAgree(1)).toBeNull();
   });
 
-  it("shows 'others agree' when voteCountForUserSide > 1", () => {
-    const voteCountForUserSide = 5;
-    const othersCount = voteCountForUserSide - 1;
-    const text = `${othersCount} ${othersCount === 1 ? "other agrees" : "others agree"}`;
-    expect(text).toBe("4 others agree");
-  });
-
-  it("shows singular 'other agrees' when exactly 2 votes on side", () => {
-    const voteCountForUserSide = 2;
-    const othersCount = voteCountForUserSide - 1;
-    const text = `${othersCount} ${othersCount === 1 ? "other agrees" : "others agree"}`;
-    expect(text).toBe("1 other agrees");
-  });
-
-  it("shows nothing extra when user is the only voter on their side", () => {
-    const voteCountForUserSide = 1;
-    const othersCount = voteCountForUserSide - 1;
-    expect(othersCount).toBe(0);
-    // When 0, the component doesn't render the "others agree" text
-  });
-
-  it("handles undefined voteCountForUserSide gracefully", () => {
-    const voteCountForUserSide = undefined;
-    const othersCount = (voteCountForUserSide ?? 1) - 1;
-    expect(othersCount).toBe(0);
+  it("returns null when the count is unknown", () => {
+    expect(formatOthersAgree(undefined)).toBeNull();
   });
 });
 
 describe("Vote count display text", () => {
-  it("uses singular 'person voted' for count of 1 (results view)", () => {
-    const totalVotes = 1;
-    const text = `${totalVotes} ${totalVotes === 1 ? "person voted" : "people voted"}`;
-    expect(text).toBe("1 person voted");
+  it("uses person/people in the results view", () => {
+    expect(formatVoterCount(1)).toBe("1 person voted");
+    expect(formatVoterCount(5)).toBe("5 people voted");
   });
 
-  it("uses plural 'people voted' for count > 1 (results view)", () => {
-    const totalVotes = 5;
-    const text = `${totalVotes} ${totalVotes === 1 ? "person voted" : "people voted"}`;
-    expect(text).toBe("5 people voted");
-  });
-
-  it("uses 'votes so far' for live squabble count", () => {
-    const totalVotes = 1;
-    expect(`${totalVotes} ${totalVotes === 1 ? "vote" : "votes"} so far`).toBe("1 vote so far");
-    const totalVotes2 = 3;
-    expect(`${totalVotes2} ${totalVotes2 === 1 ? "vote" : "votes"} so far`).toBe("3 votes so far");
+  it("uses vote/votes for the live count", () => {
+    expect(`${formatVoteCount(1)} so far`).toBe("1 vote so far");
+    expect(`${formatVoteCount(3)} so far`).toBe("3 votes so far");
   });
 });
 
@@ -403,22 +315,21 @@ describe("Display name validation", () => {
 });
 
 describe("Display name prompt visibility", () => {
-  it("shows prompt when display_name is null", () => {
-    const profile = { display_name: null };
-    const needsDisplayName = !profile.display_name;
-    expect(needsDisplayName).toBe(true);
+  // The dashboard decides with `!profile?.display_name`. These pin the three
+  // shapes that reach it, including the null-profile case.
+  const needsDisplayName = (profile: { display_name: string | null } | null) =>
+    !profile?.display_name;
+
+  it("prompts when display_name is null", () => {
+    expect(needsDisplayName({ display_name: null })).toBe(true);
   });
 
-  it("hides prompt when display_name is set", () => {
-    const profile = { display_name: "Alice" };
-    const needsDisplayName = !profile.display_name;
-    expect(needsDisplayName).toBe(false);
+  it("stays hidden once a name is set", () => {
+    expect(needsDisplayName({ display_name: "Alice" })).toBe(false);
   });
 
-  it("shows prompt when profile query returns no data", () => {
-    const profile = null;
-    const needsDisplayName = !profile?.display_name;
-    expect(needsDisplayName).toBe(true);
+  it("prompts when the profile query returned nothing", () => {
+    expect(needsDisplayName(null)).toBe(true);
   });
 });
 
@@ -536,7 +447,7 @@ describe("Auto-cast vote after login redirect", () => {
   it("does not auto-cast if vote param is invalid", () => {
     const isAuthenticated = true;
     const userVote = null;
-    const voteSideParam = "c";
+    const voteSideParam: string = "c";
     const validSide = voteSideParam === "a" || voteSideParam === "b";
     const shouldAutoCast = isAuthenticated && !userVote && validSide;
     expect(shouldAutoCast).toBe(false);
@@ -653,17 +564,18 @@ describe("Rematch logic", () => {
 
 describe("Winner celebration logic", () => {
   it("user won when their vote matches winner_side", () => {
-    expect("a" === "a").toBe(true);
+    expect(didVoterWin("a", "a")).toBe(true);
   });
   it("user lost when their vote differs from winner_side", () => {
-    expect("b" === "a").toBe(false);
+    expect(didVoterWin("b", "a")).toBe(false);
   });
-  it("no celebration when no winner (tie)", () => {
-    const winnerSide = null;
-    expect(winnerSide !== null).toBe(false);
+  it("no celebration when there is no winner (tie)", () => {
+    expect(didVoterWin("a", null)).toBe(false);
   });
-  it("no celebration when user didn't vote", () => {
-    const userVote = null;
-    expect(userVote !== null).toBe(false);
+  it("no celebration when the user didn't vote", () => {
+    expect(didVoterWin(null, "a")).toBe(false);
+  });
+  it("no celebration when there is neither a vote nor a winner", () => {
+    expect(didVoterWin(null, null)).toBe(false);
   });
 });
