@@ -1,5 +1,6 @@
 import { ImageResponse } from "next/og";
 import { createClient } from "@/lib/supabase/server";
+import { isExpired } from "@/lib/utils";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   countUnreadableProfiles,
@@ -19,7 +20,7 @@ export async function GET(
 
   const { data: squabble } = await supabase
     .from("disputes")
-    .select("id, question, side_a, side_b, status, winner_side")
+    .select("id, question, side_a, side_b, status, winner_side, creator_id, expires_at")
     .eq("slug", slug)
     .single();
 
@@ -39,6 +40,35 @@ export async function GET(
     .eq("dispute_id", squabble.id)
     .eq("side", "b");
 
+  // Who is allowed to see WHO voted, as opposed to how many.
+  //
+  // This must match `shouldShowVoters` in /s/[slug]/page.tsx exactly. This route
+  // reads voters with the admin client (below) precisely to bypass RLS, so RLS
+  // cannot gate it — without this check the image would hand a voter roster,
+  // including masked phone digits, to any anonymous caller who knows the slug,
+  // while the page itself refuses the same person. An image endpoint is not
+  // less public than a page just because it returns a PNG.
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const isCreator = !!user && user.id === squabble.creator_id;
+  const showResults =
+    squabble.status !== "open" || isExpired(squabble.expires_at);
+
+  let hasVoted = false;
+  if (user) {
+    const { data: ownVote } = await supabase
+      .from("votes")
+      .select("side")
+      .eq("dispute_id", squabble.id)
+      .eq("user_id", user.id)
+      .single();
+    hasVoted = !!ownVote;
+  }
+
+  const shouldShowVoters = isCreator || (showResults && hasVoted);
+
   // Voter names resolve through the same chain as the page — display_name ->
   // masked phone -> stable "Anonymous #N". Rendering a bare "Anonymous" here
   // would reintroduce the exact bug lib/voter-identity.ts exists to prevent,
@@ -46,9 +76,9 @@ export async function GET(
   // Phone is revoked from anon/authenticated (migration 00005), so the masked
   // fallback needs the admin client; masking stays server-side.
   let voterClient = supabase;
-  let canReadPhone = true;
+  let canReadPhone = shouldShowVoters;
   try {
-    voterClient = createAdminClient();
+    if (shouldShowVoters) voterClient = createAdminClient();
   } catch (adminError) {
     canReadPhone = false;
     console.error(
@@ -57,15 +87,17 @@ export async function GET(
     );
   }
 
-  const { data: voteRows, error: votersError } = await voterClient
-    .from("votes")
-    .select(
-      canReadPhone
-        ? "side, created_at, users(display_name, phone)"
-        : "side, created_at, users(display_name)",
-    )
-    .eq("dispute_id", squabble.id)
-    .order("created_at", { ascending: true });
+  const { data: voteRows, error: votersError } = shouldShowVoters
+    ? await voterClient
+        .from("votes")
+        .select(
+          canReadPhone
+            ? "side, created_at, users(display_name, phone)"
+            : "side, created_at, users(display_name)",
+        )
+        .eq("dispute_id", squabble.id)
+        .order("created_at", { ascending: true })
+    : { data: null, error: null };
 
   if (votersError) {
     console.error(

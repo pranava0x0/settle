@@ -13,6 +13,8 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
+const CREATOR_ID = "creator-1";
+
 const DISPUTE = {
   id: "d-1",
   question: "Are we doing a pickle back?",
@@ -20,6 +22,9 @@ const DISPUTE = {
   side_b: "Can you stop",
   status: "closed",
   winner_side: "a" as const,
+  creator_id: CREATOR_ID,
+  // Long past, so `showResults` is true on the status check alone.
+  expires_at: "2026-03-27T00:00:00Z",
 };
 
 type Fixture = {
@@ -31,27 +36,52 @@ type Fixture = {
     created_at: string;
     users: { display_name: string | null; phone?: string | null } | null;
   }>;
+  /** Who is requesting the image. `null` = an anonymous stranger with the URL. */
+  user: { id: string } | null;
+  /** Whether that user has a vote on this squabble. */
+  ownVote: { side: string } | null;
 };
 
 let fixture: Fixture;
 
+/**
+ * Every `select()` string this run issued. The voter-roster query is the one
+ * that reads names and phone numbers, so "did the gate hold?" is answerable as
+ * "was that select ever issued?" -- an assertion about the request we made,
+ * not about pixels we cannot read back out of a PNG.
+ */
+let selects: string[];
+
 /** Minimal chainable stand-in for the postgrest builder the routes actually use. */
 const makeClient = () => ({
   from(table: string) {
-    const state = { table, head: false, side: null as string | null };
+    const state = {
+      table,
+      head: false,
+      side: null as string | null,
+      voterRoster: false,
+      ownVote: false,
+    };
     const builder: Record<string, unknown> = {
-      select(_sel: string, opts?: { head?: boolean }) {
+      select(sel: string, opts?: { head?: boolean }) {
+        selects.push(sel);
         if (opts?.head) state.head = true;
+        if (sel.includes("users(")) state.voterRoster = true;
         return builder;
       },
       eq(col: string, val: string) {
         if (col === "side") state.side = val;
+        if (col === "user_id") state.ownVote = true;
         return builder;
       },
       order: () => builder,
       limit: () => builder,
       single: () =>
-        Promise.resolve({ data: fixture.dispute, error: null }),
+        Promise.resolve(
+          state.ownVote
+            ? { data: fixture.ownVote, error: null }
+            : { data: fixture.dispute, error: null },
+        ),
       then(onOk: (v: unknown) => unknown, onErr?: (e: unknown) => unknown) {
         const result =
           state.table === "votes" && state.head
@@ -66,8 +96,15 @@ const makeClient = () => ({
   },
 });
 
+const clientWithAuth = () => ({
+  ...makeClient(),
+  auth: {
+    getUser: async () => ({ data: { user: fixture.user }, error: null }),
+  },
+});
+
 vi.mock("@/lib/supabase/server", () => ({
-  createClient: async () => makeClient(),
+  createClient: async () => clientWithAuth(),
 }));
 
 // Default: no service role key, i.e. the local/dev path where the masked-phone
@@ -91,7 +128,10 @@ const expectPng = async (res: Response) => {
 
 beforeEach(() => {
   vi.spyOn(console, "error").mockImplementation(() => {});
+  selects = [];
   fixture = {
+    user: { id: CREATOR_ID },
+    ownVote: { side: "a" },
     dispute: { ...DISPUTE },
     countA: 7,
     countB: 2,
@@ -170,22 +210,117 @@ describe("/api/og/result/[slug] — shareable result image", () => {
     expect(res.status).toBe(404);
   });
 
-  it("never renders a bare 'Anonymous' — unnamed voters get stable #N labels", async () => {
-    // The story image is the artefact that gets screenshotted into a group
-    // chat, so it must resolve labels through lib/voter-identity like the page
-    // does. This asserts the wiring exists, not that satori drew the glyphs.
-    const { resolveVoterLabels } = await import("@/lib/voter-identity");
-    const labels = resolveVoterLabels(
-      fixture.voteRows.map((r) => ({
-        side: r.side as "a" | "b",
-        display_name: r.users?.display_name ?? null,
-        phone: r.users?.phone ?? null,
-        voted_at: r.created_at,
-        profile_readable: r.users !== null,
-      })),
-    ).map((v) => v.label);
+  // The image endpoint bypasses RLS on purpose (admin client, for the masked
+  // phone), so RLS cannot gate it. These pin the gate that replaces it. The
+  // property under test is "the roster was never read" rather than "the PNG has
+  // no names in it", because text cannot be read back out of a rendered image.
+  describe("voter-identity gate (must match shouldShowVoters in page.tsx)", () => {
+    const rosterWasRead = () => selects.some((sel) => sel.includes("users("));
 
-    expect(labels).toEqual(["pranava", "Anonymous #2", "Anonymous #3"]);
-    expect(labels).not.toContain("Anonymous");
+    it("does not read the voter roster for an anonymous stranger with the URL", async () => {
+      fixture.user = null;
+      fixture.ownVote = null;
+      const res = await call("http://localhost/api/og/result/z_tLCPbW?format=story");
+      await expectPng(res);
+      expect(rosterWasRead()).toBe(false);
+      expect(selects.join(" ")).not.toContain("phone");
+    });
+
+    it("does not read the roster for a logged-in user who has not voted", async () => {
+      fixture.user = { id: "bystander-1" };
+      fixture.ownVote = null;
+      await expectPng(await call("http://localhost/api/og/result/z_tLCPbW?format=story"));
+      expect(rosterWasRead()).toBe(false);
+    });
+
+    it("reads the roster for the creator", async () => {
+      fixture.user = { id: CREATOR_ID };
+      fixture.ownVote = null; // creator need not have voted
+      await expectPng(await call("http://localhost/api/og/result/z_tLCPbW?format=story"));
+      expect(rosterWasRead()).toBe(true);
+    });
+
+    it("reads the roster for a voter once the squabble is settled", async () => {
+      fixture.user = { id: "voter-1" };
+      fixture.ownVote = { side: "b" };
+      await expectPng(await call("http://localhost/api/og/result/z_tLCPbW?format=story"));
+      expect(rosterWasRead()).toBe(true);
+    });
+
+    it("withholds the roster from a voter while the squabble is still open", async () => {
+      fixture.dispute = {
+        ...DISPUTE,
+        status: "open",
+        expires_at: "2099-01-01T00:00:00Z",
+      };
+      fixture.user = { id: "voter-1" };
+      fixture.ownVote = { side: "b" };
+      await expectPng(await call("http://localhost/api/og/result/z_tLCPbW?format=story"));
+      expect(rosterWasRead()).toBe(false);
+    });
+  });
+
+  describe("voter labels are resolved by the route, not hardcoded", () => {
+    // Asserting through the SHIPPED handler. Calling resolveVoterLabels()
+    // directly here would pass even if the route dropped the import and went
+    // back to mapping every unnamed voter to a bare "Anonymous" — the failure
+    // Codex caught on the first version of this test.
+    //
+    // Text cannot be read back out of a PNG, so the observable property is that
+    // the rendered bytes VARY with the label inputs. A route that emitted one
+    // constant string for every unnamed voter would render identical images for
+    // fixtures that must produce different labels.
+    const storyFor = async (
+      users: Array<{ display_name: string | null; phone?: string | null } | null>,
+    ) => {
+      fixture.voteRows = users.map((u, i) => ({
+        side: i === 0 ? "a" : "b",
+        created_at: `2026-03-27T00:0${i}:00Z`,
+        users: u,
+      }));
+      const res = await call("http://localhost/api/og/result/z_tLCPbW?format=story");
+      expect(res.status).toBe(200);
+      return Buffer.from(await res.arrayBuffer());
+    };
+
+    it("renders a different image for a name, a masked phone, and Anonymous #N", async () => {
+      const named = await storyFor([{ display_name: "pranava", phone: null }]);
+      const phoneOnly = await storyFor([
+        { display_name: null, phone: "+15551234567" },
+      ]);
+      const anon = await storyFor([{ display_name: null, phone: null }]);
+
+      expect(named.equals(phoneOnly)).toBe(false);
+      expect(phoneOnly.equals(anon)).toBe(false);
+      expect(named.equals(anon)).toBe(false);
+    });
+
+    it("numbers two unnamed voters distinctly rather than repeating one label", async () => {
+      // "Anonymous #1, Anonymous #2" vs a bare "Anonymous, Anonymous": the
+      // stable-numbering chain makes the second voter's label depend on its
+      // index, so swapping which voter has the name must change the image.
+      const firstNamed = await storyFor([
+        { display_name: "pranava", phone: null },
+        { display_name: null, phone: null },
+      ]);
+      const secondNamed = await storyFor([
+        { display_name: null, phone: null },
+        { display_name: "pranava", phone: null },
+      ]);
+      expect(firstNamed.equals(secondNamed)).toBe(false);
+    });
+
+    it("control: the wide format ignores names, so those fixtures render identically", async () => {
+      // Proves the differences above come from the voter-label row specifically
+      // and not from some incidental byte that varies per request.
+      const wideFor = async (display_name: string | null) => {
+        fixture.voteRows = [
+          { side: "a", created_at: "2026-03-27T00:00:00Z", users: { display_name, phone: null } },
+        ];
+        const res = await call("http://localhost/api/og/result/z_tLCPbW");
+        return Buffer.from(await res.arrayBuffer());
+      };
+      expect((await wideFor("pranava")).equals(await wideFor(null))).toBe(true);
+    });
   });
 });

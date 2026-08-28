@@ -295,6 +295,18 @@ Append a note here or to `issues.md` in this shape: what I expected / what happe
   data, never a hardcoded copy of it beside the data, or the test sits green through exactly the
   addition it should catch.
 
+- **Improving what a value *resolves to* is a disclosure change at every site that renders it, and the
+  blast radius is the set of callers, not the module.** A voter-label helper was swapped into a public
+  image endpoint to stop it printing a bare `"Anonymous"` — a strictly-better label. It was also
+  strictly more disclosure: the chain's second rung is a masked phone number, so an endpoint that had
+  leaked only display names began leaking `••• 4567` to any unauthenticated caller who knew the URL.
+  The page rendering the same labels had an authorization gate; the image endpoint had none, and could
+  not inherit one because it reads with an admin client *by design* (the column is revoked from normal
+  roles, which is the whole reason the masked rung needs elevation). **Before routing a resolver into a
+  new call site, enumerate that site's audience and compare it to the audience of the sites the
+  resolver already served.** A privacy fix that widens a value is a privacy regression wherever the
+  reader is broader — and "it returns a PNG" is not an access control.
+
 **This stack's specifics:**
 
 - **`/apple-touch-icon.png` is not the path in the App Router — `src/app/apple-icon.png` is.** Next

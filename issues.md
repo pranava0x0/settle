@@ -546,3 +546,37 @@ direction — the fix that the text prescribed (add `display: flex`) would also 
 flexing a text container makes each text node its own flex item and drops the spaces between them. The
 thing that actually resolved it was mechanical bisection down to one element. When a fix derived from an
 error's own wording doesn't clear the error, stop re-reading the wording.
+
+## 2026-08-28 — PR #3 review round (Codex)
+
+- **ISSUE-068 — The result image handed a voter roster to anyone with the slug. Fixed.** Found
+  independently in self-review and confirmed by Codex as P1. `/api/og/result/[slug]?format=story` reads
+  voters with the **admin client on purpose** — that is how the masked-phone rung gets at a column
+  revoked from `anon`/`authenticated` — which means RLS cannot gate it and nothing else was. The page
+  restricts the same breakdown to `isCreator || (showResults && userVote)`; the image endpoint applied
+  no check at all, so an unauthenticated caller who knew a slug could pull display names and masked
+  phone digits the page would refuse them. Routing the image through `resolveVoterLabels` earlier in
+  this same PR is what made it worse — before that it leaked only names. The route now derives
+  `shouldShowVoters` identically to the page and **skips the roster query entirely** when it fails, so
+  the privileged read is not merely unrendered but never issued. *An image endpoint is not less public
+  than a page because it returns a PNG.* **Regression Test:** five tests asserting the roster `select`
+  is never issued for a stranger, for a logged-in non-voter, or for a voter while the squabble is still
+  open — and that it *is* issued for the creator and for a voter after settling. Sabotage-checked
+  (`shouldShowVoters = true` turns 3 red).
+- **ISSUE-069 — A regression test asserted on a helper the route no longer had to call. Fixed.** Codex,
+  P2. The test named "never renders a bare Anonymous" called `resolveVoterLabels()` directly on its own
+  fixture and asserted on the return value, so deleting the resolver import from the route and
+  restoring `display_name ?? "Anonymous"` would have left it green — it tested the helper, which was
+  never in doubt, and not the wiring, which was the entire claim. This is the failure mode `CLAUDE.md`
+  already warns about ("a test that re-implements the logic tests your model, not the machine"), written
+  anyway, in the same session that quoted the rule. Replaced with assertions on the **shipped handler's
+  rendered bytes**: a named voter, a masked-phone voter and an `Anonymous #N` voter must produce three
+  pairwise-different PNGs, with the wide format — which renders no names — as a control that must stay
+  byte-identical across the same fixtures. Verified against Codex's exact scenario: the old test stayed
+  green under it, the new one goes red.
+
+**Root-cause note:** the P1 was a *privacy regression introduced by a privacy fix* — swapping a bare
+`"Anonymous"` for the real label chain silently upgraded what a public endpoint discloses. Widening what
+a value resolves to is a disclosure change wherever that value is rendered, and the blast radius is the
+set of *callers*, not the module. Worth checking every render site's audience before improving a
+resolver, not after.
