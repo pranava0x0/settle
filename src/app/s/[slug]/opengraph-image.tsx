@@ -57,6 +57,17 @@ export default async function OGImage({
 
   const totalVotes = (voteCountA ?? 0) + (voteCountB ?? 0);
   const isSettled = squabble.status !== "open";
+  // Satori throws on any <div> with more than one child that lacks an explicit
+  // display, so this line is precomputed into a single string child. Adding
+  // `display: flex` instead would make each text node its own flex item and
+  // drop the space between the count and the word.
+  const voteCountLine = `${totalVotes} ${totalVotes === 1 ? "vote" : "votes"}`;
+  // Satori also rejects a raw NUMBER as a JSX child — `{count}` reports as more
+  // than one child node and throws the same "explicit display" error even
+  // though the div has a single expression in it. Coerce every numeric child to
+  // a string. (Bisected 2026-08-28; `{String(n)}` renders, `{n}` 500s.)
+  const tallyA = String(voteCountA ?? 0);
+  const tallyB = String(voteCountB ?? 0);
 
   return new ImageResponse(
     (
@@ -136,7 +147,7 @@ export default async function OGImage({
               {squabble.side_a}
             </div>
             <div style={{ fontSize: 40, fontWeight: 700 }}>
-              {voteCountA ?? 0}
+              {tallyA}
             </div>
           </div>
 
@@ -162,7 +173,7 @@ export default async function OGImage({
               {squabble.side_b}
             </div>
             <div style={{ fontSize: 40, fontWeight: 700 }}>
-              {voteCountB ?? 0}
+              {tallyB}
             </div>
           </div>
 
@@ -173,7 +184,7 @@ export default async function OGImage({
               color: "#71717a",
             }}
           >
-            {totalVotes} {totalVotes === 1 ? "vote" : "votes"}
+            {voteCountLine}
           </div>
         </div>
       </div>

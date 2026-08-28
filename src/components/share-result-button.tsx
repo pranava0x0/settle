@@ -29,8 +29,14 @@ export const ShareResultButton = ({ slug }: ShareResultButtonProps) => {
           files: [file],
         });
         return;
-      } catch {
-        // User cancelled or sharing failed — fall through to copy
+      } catch (err) {
+        // A user cancelling the share sheet is normal; anything else is a real
+        // failure and must be logged. Swallowing everything here is what hid
+        // the 500 from /api/og/result for as long as it did — the button just
+        // quietly copied a link instead.
+        if (!(err instanceof DOMException && err.name === "AbortError")) {
+          console.error("Native share failed, falling back to copy link:", err);
+        }
       }
     }
 
@@ -70,11 +76,11 @@ export const ShareResultButton = ({ slug }: ShareResultButtonProps) => {
       <Button variant="outline" className="flex-1" onClick={handleShare}>
         {copied ? (
           <>
-            <Check className="mr-2 h-4 w-4" /> Link copied
+            <Check className="mr-2 h-4 w-4" aria-hidden="true" /> Link copied
           </>
         ) : (
           <>
-            <Share2 className="mr-2 h-4 w-4" /> Share the result
+            <Share2 className="mr-2 h-4 w-4" aria-hidden="true" /> Share the result
           </>
         )}
       </Button>
@@ -82,8 +88,11 @@ export const ShareResultButton = ({ slug }: ShareResultButtonProps) => {
         variant="outline"
         onClick={handleDownload}
         disabled={downloading}
+        aria-label={
+          downloading ? "Downloading result image" : "Download result image"
+        }
       >
-        <Download className="h-4 w-4" />
+        <Download className="h-4 w-4" aria-hidden="true" />
       </Button>
     </div>
   );

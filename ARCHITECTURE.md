@@ -156,12 +156,25 @@ Timer expires → result shown → debate settled
 
 ### Production
 - **Hosting:** Vercel (Hobby plan, free)
-- **URL:** settle.vercel.app (auto-assigned by Vercel)
+- **URL:** **https://settle-ochre-eight.vercel.app** — verified live 2026-08-28.
+  - ⚠️ This file previously named `settle.vercel.app`. That host answers **200** but serves an
+    unrelated third party's app; it has never been ours, and the 200 is exactly why the error survived
+    three sessions. Verify a deployment by grepping the response body for a string only this app emits
+    (e.g. `Squabble`), never by status code alone.
+  - The canonical record of this URL is the `site_url` column of `public.app_settings` — the pg_cron
+    result-SMS pipeline builds absolute links from it. Keep the two in sync.
 - **Repo:** github.com/praparla/settle (auto-deploys on push to main)
 - **Environment Variables (Vercel):**
   - `NEXT_PUBLIC_SUPABASE_URL` — Supabase project URL (public)
   - `NEXT_PUBLIC_SUPABASE_ANON_KEY` — Supabase anon key (public, RLS-protected)
-  - Note: `SUPABASE_SERVICE_ROLE_KEY` is NOT set in Vercel — not needed for client-side app
+  - `SUPABASE_SERVICE_ROLE_KEY` — **server-only, and currently NOT set in any environment.**
+    An earlier revision of this file said it was "not needed for client-side app." That was true of the
+    client and irrelevant to the server: `closeSquabble()` and the voter-label chain both run
+    server-side and both degrade without it. Measured against live data, ~32% of voter labels fall back
+    from a masked phone (`••• 4567`) to `Anonymous #N` because it is missing. Lazy close does *not*
+    depend on it — pg_cron backstops that within a minute.
+  - `NEXT_PUBLIC_SITE_URL` — optional; pins `metadataBase` (and therefore OG image URLs) to a stable
+    host instead of Vercel's per-deployment domain.
 
 ### Deploy Checklist
 1. `pnpm test && pnpm build` — verify locally

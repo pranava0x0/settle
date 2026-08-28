@@ -356,7 +356,22 @@ Living bug and issue tracker. Log bugs as they're found, update when fixed.
 - **Complexity:** low — generate 192/512 + maskable + apple-touch-icon, align theme_color, delete unused template SVGs.
 - **Priority:** medium — PWA is the stated platform strategy; install experience is broken.
 - **Root Cause:** config — manifest written, assets never generated.
-- **Status:** Open
+- **Fix (2026-08-28):** `tools/generate-icons.py` renders the set from the `.theme-ring` palette — a
+  dark rope frame holding the red and blue corners on the tan canvas, i.e. the two vote buttons a voter
+  actually taps. Committed as a script, not just as PNGs, so the marks can be re-derived when the palette
+  moves. Ships `icon-192`, `icon-512`, a `purpose: "maskable"` 512 scaled to 78% so Android's mask cannot
+  crop the frame, and `src/app/apple-icon.png` (Next's app-directory convention, which is what actually
+  emits `<link rel="apple-touch-icon">` — the old `/apple-touch-icon.png` path was never going to be
+  requested). `theme_color`/`background_color` moved from `#ffffff` to the Ring canvas `#f5e6d3`, matching
+  `DEFAULT_THEME`, and the `viewport.themeColor` in `layout.tsx` with it. Deleted the five unreferenced
+  Next.js template SVGs. Verified against the running server: all three manifest icons and the
+  apple-touch-icon return 200 `image/png`, and the emitted `<meta name="theme-color">` is the tan.
+- **Regression Test:** yes — `src/lib/__tests__/pwa-manifest.test.ts`. It walks the manifest's *own* icon
+  array rather than a hardcoded filename list (a literal beside the manifest would stay green through the
+  exact change it should catch), asserting each file exists, has PNG magic bytes, and that its real IHDR
+  width/height match the declared `sizes`. Watched fail three ways — icon deleted, `theme_color` reverted
+  to white, declared size falsified — then restored.
+- **Status:** Fixed
 
 ### [ISSUE-034] e2e directory missing — `pnpm test:e2e` cannot run
 - **Date:** 2026-07-30
@@ -459,3 +474,75 @@ Living bug and issue tracker. Log bugs as they're found, update when fixed.
 - **ISSUE-062 — `parseInt` on the custom duration. Fixed.** `<input type="number">` accepts scientific notation and `parseInt("1e2")` is 1, so typing 100 minutes would have created a one-minute squabble. Now `Number()` with `Number.isInteger` and an explicit empty check (`Number("")` is 0). Five tests added, watched failing against the old version first.
 
 **Root-cause note:** the review found four things a green suite and a careful self-read did not, and three of them were in the code written *this session* to fix earlier bugs. Two were in the SMS pipeline's safety machinery specifically — the part most carefully reasoned about. Worth remembering that the code you were most deliberate about is not the code least likely to be wrong.
+
+## 2026-08-28 — Runtime UAT pass (localhost + Vercel), OG images
+
+Testing pass rather than a feature session: 293 tests green and a clean build to start with, so
+every finding below came from actually driving the running app and reading live Supabase/Vercel
+state. All three new bugs reproduced **in production** as well as locally.
+
+- **ISSUE-063 — Both Open Graph image routes returned 500, in production. Fixed.** `/s/[slug]/opengraph-image`
+  (the preview card for every link texted to a group chat — i.e. the product's entire distribution
+  mechanism) and `/api/og/result/[slug]` (behind "Share the result" and the download button) each
+  died with satori's `Expected <div> to have explicit "display: flex" or "display: none" if it has
+  more than one child node`. *The message names the wrong cause.* Two of the offending divs really
+  did have several children (`{winnerName} wins — {Math.max(a,b)} to {Math.min(a,b)}`), but after
+  fixing those the route still 500'd, and bisecting the JSX down to a single element showed the real
+  trigger: **a raw number as a JSX child**. `<div>{voteCountA ?? 0}</div>` throws; `<div>{String(voteCountA ?? 0)}</div>`
+  renders. Every numeric and multi-part text child in both routes is now precomputed into one string.
+  Verified live: all 8 route/format/slug combinations return `image/png`, and the rendered images were
+  read back and eyeballed. **Regression Test:** yes — `src/app/__tests__/og-images.test.tsx`, 10 tests
+  that render the *shipped* handlers with Supabase mocked and assert real PNG magic bytes. Both fixes
+  were sabotaged in turn and the suite watched go red (2 red for the numeric child, 3 for the inline
+  winner line), then restored.
+- **ISSUE-064 — The download-result button had no accessible name, and share failures were swallowed. Fixed.**
+  `share-result-button.tsx` rendered an icon-only `<Button>` containing just `<Download />`; the
+  accessibility tree read `button` with no name. Now `aria-label` (state-aware) with the icon marked
+  `aria-hidden`, confirmed in the a11y tree as `"Download result image"`. Separately its sibling's
+  `catch {}` discarded *every* native-share error, so while ISSUE-063 was live the button silently
+  degraded to copying a link — that empty catch is a large part of why a 500 on the share path went
+  unnoticed. It now re-throws nothing but logs anything that isn't a user-cancelled `AbortError`.
+  A codebase-wide scan found no other icon-only control missing a name.
+- **ISSUE-065 — `metadataBase` was never set, so OG image URLs resolved against the request origin. Fixed.**
+  Next.js warned on every render (`metadataBase property in metadata export is not set ... using
+  "http://localhost:3210"`) and the page's `og:image` really did serialise as a localhost URL. Root
+  layout now derives an absolute base from `NEXT_PUBLIC_SITE_URL` → `VERCEL_PROJECT_PRODUCTION_URL`
+  → `VERCEL_URL` → localhost.
+- **ISSUE-066 — `ARCHITECTURE.md` documented a production URL that belongs to someone else. Fixed.**
+  `ARCHITECTURE.md:159` says the app lives at `settle.vercel.app`. That host answers **200**, which is
+  exactly why it was never questioned — but the HTML it serves is an unrelated Material-UI *pages*-router
+  app with a Google sign-in client ID. It is not this project and never was. The real deployment
+  (`settle-ochre-eight.vercel.app`, live and healthy) is recorded in exactly one place: the
+  `app_settings.site_url` column in the database. `IMPROVEMENT_PLAN.md:12`'s "returns nothing useful"
+  was closer but still read as "our dead deploy" rather than "not ours." **Fix:** correct
+  `ARCHITECTURE.md`, and treat `app_settings.site_url` as the source of truth until it isn't. **Fixed:** the Deployment section now
+  carries the verified URL, the reason the wrong one survived, and a correction to its second error —
+  it also claimed `SUPABASE_SERVICE_ROLE_KEY` was "not needed for client-side app", which was true of
+  the client and irrelevant to the two server-side paths that use it.
+- **ISSUE-067 — `closeSquabble()`'s admin-client fallback logged nothing. Fixed (hardening).** The
+  `catch { db = await createClient(); }` was silent, so the only signal that lazy close was about to
+  run as an unprivileged visitor was the downstream 0-rows message, which can only *guess* at the
+  cause. It now logs the fallback explicitly. Not a new defect — ISSUE-046's rows-affected guard fired
+  correctly and said the right thing — but the two messages together now name cause and effect.
+
+### Verified, not re-opened
+
+- **ISSUE-048 (realtime) confirmed fixed in live state.** `supabase_realtime` publishes `votes`.
+- **ISSUE-033 (PWA icons) reproduced, then fixed.** `/icon-192.png`, `/icon-512.png` and
+  `/apple-touch-icon.png` all 404'd against the running server while `manifest.json` referenced the
+  first two. Fixed in the same branch — see the ISSUE-033 entry above for the icon set, the
+  `apple-touch-icon` path correction, and the regression test.
+- **Lazy close is backstopped by pg_cron, which changes ISSUE-046's severity.** Locally (no
+  `SUPABASE_SERVICE_ROLE_KEY`) `closeSquabble()` correctly reported `UPDATE affected 0 rows` — the RLS
+  policy is `auth.uid() = creator_id`, so any non-creator visitor is refused. The squabble still closed
+  **~90 seconds later**, correctly (`status='closed'`, `winner_side='a'`), because the
+  `squabble-results-tick` cron job runs every minute and has succeeded 794 times. So a missing service
+  role key delays a close by up to a minute; it does not lose it. The key *does* still matter for voter
+  labels — see the note below.
+
+**Root-cause note:** ISSUE-063 is the third "the error message named a symptom, not the cause" entry in
+this tracker, and the first where reading the message carefully actively sent the fix in the wrong
+direction — the fix that the text prescribed (add `display: flex`) would also have been *wrong*, since
+flexing a text container makes each text node its own flex item and drops the spaces between them. The
+thing that actually resolved it was mechanical bisection down to one element. When a fix derived from an
+error's own wording doesn't clear the error, stop re-reading the wording.
