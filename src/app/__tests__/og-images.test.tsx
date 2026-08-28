@@ -52,6 +52,24 @@ let fixture: Fixture;
  */
 let selects: string[];
 
+/**
+ * PostgREST returns exactly the columns the projection asked for. The fake must
+ * too: the route drops `phone` from its select whenever the admin client is
+ * unavailable, and a fake that hands back the full fixture row regardless makes
+ * the masked-phone rung look exercised when the real response would not have
+ * carried a phone at all. Honouring the projection is what makes
+ * `adminAvailable` a real variable rather than decoration.
+ */
+const projectVoteRows = (projection: string) =>
+  fixture.voteRows.map((row) => {
+    if (!row.users) return row;
+    const { phone, ...rest } = row.users;
+    return {
+      ...row,
+      users: projection.includes("phone") ? { ...rest, phone } : rest,
+    };
+  });
+
 /** Minimal chainable stand-in for the postgrest builder the routes actually use. */
 const makeClient = () => ({
   from(table: string) {
@@ -61,10 +79,12 @@ const makeClient = () => ({
       side: null as string | null,
       voterRoster: false,
       ownVote: false,
+      projection: "",
     };
     const builder: Record<string, unknown> = {
       select(sel: string, opts?: { head?: boolean }) {
         selects.push(sel);
+        state.projection = sel;
         if (opts?.head) state.head = true;
         if (sel.includes("users(")) state.voterRoster = true;
         return builder;
@@ -87,7 +107,7 @@ const makeClient = () => ({
           state.table === "votes" && state.head
             ? { count: state.side === "a" ? fixture.countA : fixture.countB, error: null }
             : state.table === "votes"
-              ? { data: fixture.voteRows, error: null }
+              ? { data: projectVoteRows(state.projection), error: null }
               : { data: null, error: null };
         return Promise.resolve(result).then(onOk, onErr);
       },
@@ -107,12 +127,18 @@ vi.mock("@/lib/supabase/server", () => ({
   createClient: async () => clientWithAuth(),
 }));
 
-// Default: no service role key, i.e. the local/dev path where the masked-phone
-// fallback is unavailable. Individual tests override this.
+/**
+ * Whether SUPABASE_SERVICE_ROLE_KEY is configured. Defaults to false — the
+ * local/dev shape, and the one production is currently in — so tests that do
+ * not opt in exercise the degraded path. Flip it to reach the masked-phone rung.
+ */
+let adminAvailable: boolean;
+
 vi.mock("@/lib/supabase/admin", () => ({
-  createAdminClient: vi.fn(() => {
-    throw new Error("Missing Supabase admin env vars.");
-  }),
+  createAdminClient: () => {
+    if (!adminAvailable) throw new Error("Missing Supabase admin env vars.");
+    return makeClient();
+  },
 }));
 
 const PNG_MAGIC = [0x89, 0x50, 0x4e, 0x47];
@@ -129,6 +155,7 @@ const expectPng = async (res: Response) => {
 beforeEach(() => {
   vi.spyOn(console, "error").mockImplementation(() => {});
   selects = [];
+  adminAvailable = false;
   fixture = {
     user: { id: CREATOR_ID },
     ownVote: { side: "a" },
@@ -272,7 +299,9 @@ describe("/api/og/result/[slug] — shareable result image", () => {
     // fixtures that must produce different labels.
     const storyFor = async (
       users: Array<{ display_name: string | null; phone?: string | null } | null>,
+      opts: { admin?: boolean } = {},
     ) => {
+      adminAvailable = opts.admin ?? false;
       fixture.voteRows = users.map((u, i) => ({
         side: i === 0 ? "a" : "b",
         created_at: `2026-03-27T00:0${i}:00Z`,
@@ -283,16 +312,44 @@ describe("/api/og/result/[slug] — shareable result image", () => {
       return Buffer.from(await res.arrayBuffer());
     };
 
+    const PHONE_ONLY = [{ display_name: null, phone: "+15551234567" }];
+
     it("renders a different image for a name, a masked phone, and Anonymous #N", async () => {
-      const named = await storyFor([{ display_name: "pranava", phone: null }]);
-      const phoneOnly = await storyFor([
-        { display_name: null, phone: "+15551234567" },
-      ]);
-      const anon = await storyFor([{ display_name: null, phone: null }]);
+      // The masked rung only exists when the service role key is configured —
+      // `phone` is revoked from anon/authenticated, so without the admin client
+      // the route does not even select the column.
+      const named = await storyFor([{ display_name: "pranava", phone: null }], { admin: true });
+      const phoneOnly = await storyFor(PHONE_ONLY, { admin: true });
+      const anon = await storyFor([{ display_name: null, phone: null }], { admin: true });
 
       expect(named.equals(phoneOnly)).toBe(false);
       expect(phoneOnly.equals(anon)).toBe(false);
       expect(named.equals(anon)).toBe(false);
+    });
+
+    it("reaches the masked-phone rung ONLY with the admin client", async () => {
+      // The assertion Codex caught the first version faking: the same voter,
+      // the only difference being whether the service role key exists. With it,
+      // the label is "••• 4567"; without it the column is never selected and
+      // the voter degrades to "Anonymous #N". Identical bytes here would mean
+      // the privileged path does nothing.
+      const withAdmin = await storyFor(PHONE_ONLY, { admin: true });
+      const withoutAdmin = await storyFor(PHONE_ONLY, { admin: false });
+      expect(withAdmin.equals(withoutAdmin)).toBe(false);
+
+      // And the degraded image must equal the genuinely-anonymous one, because
+      // that is precisely what the missing key costs: ~32% of live voter labels.
+      const trulyAnon = await storyFor([{ display_name: null, phone: null }], { admin: false });
+      expect(withoutAdmin.equals(trulyAnon)).toBe(true);
+    });
+
+    it("asks for the phone column only when the admin client is available", async () => {
+      await storyFor(PHONE_ONLY, { admin: true });
+      expect(selects.some((sel) => sel.includes("phone"))).toBe(true);
+
+      selects = [];
+      await storyFor(PHONE_ONLY, { admin: false });
+      expect(selects.some((sel) => sel.includes("phone"))).toBe(false);
     });
 
     it("numbers two unnamed voters distinctly rather than repeating one label", async () => {

@@ -317,6 +317,20 @@ Append a note here or to `issues.md` in this shape: what I expected / what happe
   being a documented production URL that belonged to a third party and also answered 200): *a 200 means
   something answered, never that the thing you wanted answered.*
 
+- **A mock more generous than the real dependency silently satisfies assertions the real one would
+  refuse.** A fake PostgREST builder returned the full fixture row no matter what the query projected.
+  The route under test drops the `phone` column from its `select` whenever the privileged client is
+  unavailable — the default in the test setup — so the real response would have carried no phone at
+  all, yet the fake handed one back and the "masked phone renders differently" assertion passed. The
+  entire privileged code path those tests existed to guard was unexercised, and the suite reported it
+  green. Making the fake honour the projection turned the assertion red *immediately*, which is the
+  proof it had been vacuous. **Fakes must be at least as strict as the thing they replace** — project
+  only selected columns, enforce the same required arguments, fail on the same inputs — and the
+  sabotage check has to include breaking the fake, not only the code, because a too-permissive fake is
+  invisible from the code side. Corollary for regression tests specifically: a guard written
+  immediately after a fix inherits the author's belief that the fix works and gets read as
+  documentation rather than as an experiment that must be able to fail.
+
 **This stack's specifics:**
 
 - **`/apple-touch-icon.png` is not the path in the App Router — `src/app/apple-icon.png` is.** Next
