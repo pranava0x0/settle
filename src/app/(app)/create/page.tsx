@@ -27,9 +27,15 @@ const CreateSquabblePage = () => {
   // The custom box is the selection whenever it holds anything. Deriving this
   // rather than tracking an `isCustom` flag keeps the two inputs from both
   // claiming to be selected.
-  const customValue = Number.parseInt(customMinutes, 10);
+  //
+  // Number(), not parseInt(): <input type="number"> accepts scientific notation,
+  // and parseInt("1e2") is 1 — so typing 100 minutes would quietly create a
+  // one-minute squabble. Number() reads the whole value, and Number.isInteger
+  // then rejects the fractional results it also allows.
+  const customValue = Number(customMinutes);
   const isCustomValid =
-    Number.isFinite(customValue) &&
+    customMinutes.trim() !== "" &&
+    Number.isInteger(customValue) &&
     customValue >= DURATION_LIMITS.MIN_MINUTES &&
     customValue <= DURATION_LIMITS.MAX_MINUTES;
   const usingCustom = customMinutes.trim() !== "";

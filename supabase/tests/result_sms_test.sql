@@ -134,6 +134,81 @@ BEGIN
     END IF;
   END;
 
+  -- ---- 10. no privileged RPC is executable by PUBLIC -------------------
+  -- Postgres grants EXECUTE to PUBLIC by default and a revoke aimed only at
+  -- anon/authenticated does not subtract from it, so every one of these
+  -- answered an unauthenticated caller with 200 until 00012.
+  IF EXISTS (
+    SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname = 'public'
+      AND p.proname IN ('close_expired_squabbles','enqueue_result_notifications',
+                        'tick_squabble_results','claim_result_notifications',
+                        'complete_result_notification','requeue_stalled_notifications')
+      AND has_function_privilege('public', p.oid, 'EXECUTE')
+  ) THEN
+    RAISE EXCEPTION 'FAIL 10: a privileged notification RPC is still executable by PUBLIC';
+  END IF;
+
+  -- ---- 11. stall is measured from claim time, not enqueue time ----------
+  DECLARE
+    probe_id UUID;
+    probe_status TEXT;
+  BEGIN
+    -- A row that waited out a backlog: created 20 minutes ago, claimed now.
+    UPDATE public.result_notifications
+    SET status = 'pending', attempts = 0, claimed_at = NULL,
+        created_at = now() - interval '20 minutes'
+    WHERE dispute_id = d_id
+    RETURNING id INTO probe_id;
+
+    PERFORM public.claim_result_notifications(10);
+    PERFORM public.requeue_stalled_notifications();
+
+    SELECT status INTO probe_status FROM public.result_notifications WHERE id = probe_id;
+    IF probe_status <> 'sending' THEN
+      RAISE EXCEPTION 'FAIL 11: the reaper requeued a row claimed seconds ago (status=%); the sender is still working on it and the message would go twice', probe_status;
+    END IF;
+
+    -- A genuinely stranded row must still be recovered.
+    UPDATE public.result_notifications SET claimed_at = now() - interval '15 minutes'
+    WHERE id = probe_id;
+    PERFORM public.requeue_stalled_notifications();
+    SELECT status INTO probe_status FROM public.result_notifications WHERE id = probe_id;
+    IF probe_status <> 'pending' THEN
+      RAISE EXCEPTION 'FAIL 11b: a row stranded in sending was never recovered (status=%)', probe_status;
+    END IF;
+  END;
+
+  -- ---- 12. the one-segment guarantee survives hostile input --------------
+  -- Emoji and accents force UCS-2 (70-char segments) if they survive, and
+  -- GSM-7 extension characters cost two septets each, so a 160-CHARACTER body
+  -- of "[y][y]..." is really 216 septets.
+  DECLARE
+    worst INTEGER;
+  BEGIN
+    SELECT max(public.gsm7_septets(body)) INTO worst FROM (
+      SELECT public.build_result_sms(q, w, 'https://example.test', 'abcd1234') AS body
+      FROM (VALUES
+        ('Is a sandwich, cafe edition?', 'Yes'),
+        (repeat('{x}', 90), repeat('[y]', 40)),
+        (repeat('q', 280), repeat('w', 140)),
+        (repeat('z', 280), NULL),
+        ('', ''),
+        (U&'\+01F355\+01F354', U&'\+01F35F')
+      ) v(q, w)
+    ) bodies;
+    IF worst > 160 THEN
+      RAISE EXCEPTION 'FAIL 12: worst-case body is % septets; it would bill as multiple segments', worst;
+    END IF;
+  END;
+
+  IF EXISTS (
+    SELECT 1 FROM public.result_notifications
+    WHERE dispute_id = d_id AND body ~ '[^\x20-\x7E]'
+  ) THEN
+    RAISE EXCEPTION 'FAIL 12b: a queued body contains non-ASCII, which forces UCS-2 encoding';
+  END IF;
+
   RAISE NOTICE 'All result-SMS invariants held.';
 END $$;
 
