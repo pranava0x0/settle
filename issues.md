@@ -562,7 +562,12 @@ error's own wording doesn't clear the error, stop re-reading the wording.
   than a page because it returns a PNG.* **Regression Test:** five tests asserting the roster `select`
   is never issued for a stranger, for a logged-in non-voter, or for a voter while the squabble is still
   open — and that it *is* issued for the creator and for a voter after settling. Sabotage-checked
-  (`shouldShowVoters = true` turns 3 red).
+  (`shouldShowVoters = true` turns 3 red). **Follow-up:** the first fix duplicated the page's expression
+  into the route. Equivalent on the day, but that is the ISSUE-045 shape exactly — two callers deriving
+  one predicate independently — and here a drift discloses a roster rather than mislabelling a badge. Both
+  sites now call `canSeeVoterIdentities()` in `lib/voter-identity.ts`, with 7 unit tests including the
+  expired-but-still-open row shape (settled: the cron tick simply has not run yet) and a guard that a null
+  viewer is never mistaken for a null creator.
 - **ISSUE-069 — A regression test asserted on a helper the route no longer had to call. Fixed.** Codex,
   P2. The test named "never renders a bare Anonymous" called `resolveVoterLabels()` directly on its own
   fixture and asserted on the return value, so deleting the resolver import from the route and

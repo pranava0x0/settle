@@ -42,12 +42,13 @@ export async function GET(
 
   // Who is allowed to see WHO voted, as opposed to how many.
   //
-  // This must match `shouldShowVoters` in /s/[slug]/page.tsx exactly. This route
-  // reads voters with the admin client (below) precisely to bypass RLS, so RLS
-  // cannot gate it — without this check the image would hand a voter roster,
-  // including masked phone digits, to any anonymous caller who knows the slug,
-  // while the page itself refuses the same person. An image endpoint is not
-  // less public than a page just because it returns a PNG.
+  // Same predicate as /s/[slug]/page.tsx, from one shared definition so the two
+  // cannot drift. This route reads voters with the admin client (below)
+  // precisely to bypass RLS, so RLS cannot gate it — without this check the
+  // image would hand a voter roster, including masked phone digits, to any
+  // anonymous caller who knows the slug, while the page itself refuses the same
+  // person. An image endpoint is not less public than a page just because it
+  // returns a PNG.
   const {
     data: { user },
   } = await supabase.auth.getUser();
