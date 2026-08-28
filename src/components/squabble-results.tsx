@@ -1,5 +1,12 @@
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { SIDE_BAR_COLORS } from "@/lib/constants";
+import {
+  formatScoreline,
+  formatVoteCount,
+  formatVoterCount,
+  votePercentages,
+} from "@/lib/formatters";
 
 type SquabbleResultsProps = {
   sideA: string;
@@ -19,8 +26,7 @@ export const SquabbleResults = ({
   status,
 }: SquabbleResultsProps) => {
   const totalVotes = voteCountA + voteCountB;
-  const percentA = totalVotes > 0 ? Math.round((voteCountA / totalVotes) * 100) : 0;
-  const percentB = totalVotes > 0 ? Math.round((voteCountB / totalVotes) * 100) : 0;
+  const { percentA, percentB } = votePercentages(voteCountA, voteCountB);
 
   return (
     <div className="space-y-4">
@@ -36,7 +42,7 @@ export const SquabbleResults = ({
       )}
       {winnerSide && (
         <Badge className="mx-auto block w-fit">
-          {winnerSide === "a" ? sideA : sideB} wins &mdash; {voteCountA > voteCountB ? voteCountA : voteCountB} to {voteCountA > voteCountB ? voteCountB : voteCountA}
+          {formatScoreline(winnerSide, sideA, sideB, voteCountA, voteCountB)}
         </Badge>
       )}
 
@@ -47,14 +53,15 @@ export const SquabbleResults = ({
               {sideA}
             </span>
             <span className="text-muted-foreground">
-              {voteCountA} {voteCountA === 1 ? "vote" : "votes"} ({percentA}%)
+              {formatVoteCount(voteCountA)} ({percentA}%)
             </span>
           </div>
           <div className="bg-muted h-3 overflow-hidden rounded-full">
             <div
+              data-bar-side="a"
               className={cn(
                 "h-full rounded-full transition-all",
-                winnerSide === "a" ? "bg-green-500" : "bg-blue-500",
+                winnerSide === "a" ? "bg-green-500" : SIDE_BAR_COLORS.a,
               )}
               style={{ width: `${percentA}%` }}
             />
@@ -67,14 +74,15 @@ export const SquabbleResults = ({
               {sideB}
             </span>
             <span className="text-muted-foreground">
-              {voteCountB} {voteCountB === 1 ? "vote" : "votes"} ({percentB}%)
+              {formatVoteCount(voteCountB)} ({percentB}%)
             </span>
           </div>
           <div className="bg-muted h-3 overflow-hidden rounded-full">
             <div
+              data-bar-side="b"
               className={cn(
                 "h-full rounded-full transition-all",
-                winnerSide === "b" ? "bg-green-500" : "bg-blue-500",
+                winnerSide === "b" ? "bg-green-500" : SIDE_BAR_COLORS.b,
               )}
               style={{ width: `${percentB}%` }}
             />
@@ -83,7 +91,7 @@ export const SquabbleResults = ({
       </div>
 
       <p className="text-muted-foreground text-center text-xs">
-        {totalVotes} {totalVotes === 1 ? "person voted" : "people voted"}
+        {formatVoterCount(totalVotes)}
       </p>
     </div>
   );

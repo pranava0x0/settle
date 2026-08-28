@@ -6,6 +6,8 @@ import { castVote } from "@/lib/actions/votes";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { SIDE_BAR_COLORS } from "@/lib/constants";
+import { formatOthersAgree, votePercentages } from "@/lib/formatters";
 import { buildVoteLoginRedirect } from "@/lib/voter-identity";
 import { PostVotePrompt } from "@/components/post-vote-prompt";
 
@@ -91,10 +93,8 @@ export const VoteButtons = ({
   }
 
   if (userVote) {
-    const othersCount = (voteCountForUserSide ?? 1) - 1;
-    const totalVotes = voteCountA + voteCountB;
-    const percentA = totalVotes > 0 ? Math.round((voteCountA / totalVotes) * 100) : 0;
-    const percentB = totalVotes > 0 ? Math.round((voteCountB / totalVotes) * 100) : 0;
+    const othersAgree = formatOthersAgree(voteCountForUserSide);
+    const { percentA, percentB } = votePercentages(voteCountA, voteCountB);
 
     return (
       <div className="space-y-3">
@@ -103,9 +103,7 @@ export const VoteButtons = ({
           <span className="font-semibold">
             {userVote === "a" ? sideA : sideB}
           </span>
-          {othersCount > 0 && (
-            <> &middot; {othersCount} {othersCount === 1 ? "other agrees" : "others agree"}</>
-          )}
+          {othersAgree && <> &middot; {othersAgree}</>}
         </p>
         <div className="space-y-2">
           <div className="space-y-1">
@@ -115,7 +113,11 @@ export const VoteButtons = ({
             </div>
             <div className="bg-muted h-2.5 overflow-hidden rounded-full">
               <div
-                className="h-full rounded-full bg-blue-500 animate-bar-fill"
+                data-bar-side="a"
+                className={cn(
+                  "h-full rounded-full animate-bar-fill",
+                  SIDE_BAR_COLORS.a,
+                )}
                 style={{ "--bar-width": `${percentA}%` } as React.CSSProperties}
               />
             </div>
@@ -127,7 +129,11 @@ export const VoteButtons = ({
             </div>
             <div className="bg-muted h-2.5 overflow-hidden rounded-full">
               <div
-                className="h-full rounded-full bg-blue-500 animate-bar-fill"
+                data-bar-side="b"
+                className={cn(
+                  "h-full rounded-full animate-bar-fill",
+                  SIDE_BAR_COLORS.b,
+                )}
                 style={{ "--bar-width": `${percentB}%` } as React.CSSProperties}
               />
             </div>
@@ -150,6 +156,7 @@ export const VoteButtons = ({
       <div className="grid grid-cols-2 gap-3">
         <Button
           variant="outline"
+          data-vote-side="a"
           className={cn(
             "h-auto min-h-[3rem] whitespace-normal py-3",
             votedSide === "a" && "animate-vote-pop",
@@ -161,6 +168,7 @@ export const VoteButtons = ({
         </Button>
         <Button
           variant="outline"
+          data-vote-side="b"
           className={cn(
             "h-auto min-h-[3rem] whitespace-normal py-3",
             votedSide === "b" && "animate-vote-pop",
