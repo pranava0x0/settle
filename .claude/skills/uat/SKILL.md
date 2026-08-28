@@ -35,7 +35,7 @@ Before starting any test run:
 3. **Note the current date** for issue timestamps.
 4. **Announce the run mode** and which personas will be tested.
 5. **Check whether any squabble is currently `open`.** As of 2026-08-28 all 25 live disputes are closed or expired, so the vote / countdown / lazy-close flows are untestable against real data. Create a disposable fixture (see "Fixtures" below) or the whole live-voting half of this checklist silently gets skipped.
-6. **Test the deployed app too, not just localhost** — `https://settle-ochre-eight.vercel.app`. Three of this project's worst bugs were only visible against a running server, and one (ISSUE-063) was live in production while every test passed.
+6. **Test the deployed app too, not just localhost** — `https://settle-ochre-eight.vercel.app`. Three of this project's worst bugs were only visible against a running server, and one (ISSUE-063) was live in production while every test passed. **Do not smoke-test a PR's Vercel *preview*:** previews sit behind deployment protection, so every path — static assets included — returns `200` with the same ~341KB Vercel login page. Assert `content_type` and a per-route byte count, never the status code alone. Production is unprotected; verify there after merge.
 
 ---
 

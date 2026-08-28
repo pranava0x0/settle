@@ -585,3 +585,41 @@ error's own wording doesn't clear the error, stop re-reading the wording.
 a value resolves to is a disclosure change wherever that value is rendered, and the blast radius is the
 set of *callers*, not the module. Worth checking every render site's audience before improving a
 resolver, not after.
+
+## 2026-08-28 — PR #3 follow-up (Codex round 2, landed after merge)
+
+- **ISSUE-070 — The masked-phone rung was never actually exercised; the mock faked it. Fixed.** Codex,
+  P2, posted two minutes after the squash merge — so it was read late, not addressed in the PR it
+  belongs to. The fake postgrest builder returned the whole fixture row regardless of the projection,
+  while the default `createAdminClient` mock *throws* — the local/dev shape. So the route correctly took
+  its names-only fallback and selected no `phone`, and the fake handed a phone back anyway. The
+  "renders a masked phone differently" assertion passed on a column a real response would never have
+  carried, which means the privileged wiring the previous commits were all about was still untested.
+  **Fix:** the fake now projects only the selected columns, and admin availability is a per-test
+  variable (`adminAvailable`) defaulting to *false*, the shape production is actually in. Making the
+  fake honest immediately turned that assertion red, which is the proof it had been vacuous. Three tests
+  now pin the rung: the same phone-only voter must render differently with and without the admin client;
+  the degraded image must be byte-identical to a genuinely anonymous one (that equality *is* the cost of
+  the missing key — ~32% of live labels); and `phone` must appear in the projection only when the admin
+  client is available. Sabotage-checked by deleting the phone branch outright — 3 red, where the old
+  suite stayed green.
+
+**Root-cause note:** two rounds running, the finding was in a *test* rather than in the code, and both
+times the test was one written to guard a real bug that had just been fixed. A regression test authored
+in the glow of a fix inherits the author's belief that the fix works; it gets read as documentation of
+the fix rather than as an experiment that has to be capable of failing. The cheap discipline that
+catches both: after writing the guard, break the thing it guards and watch it go red — and when the
+guard depends on a **fake**, break the fake too, because a mock that is more generous than the real
+dependency silently satisfies assertions the real one would refuse.
+
+## 2026-08-28 — PR #4 review round (Codex)
+
+- **ISSUE-071 — The PostgREST fake still returned unselected fields. Fixed.** The projection helper
+  removed `phone` when absent, but spread the rest of each fixture row. A route query that accidentally
+  omitted `side`, `created_at`, `users`, or `users(display_name)` would therefore still receive those
+  fields in tests, unlike real PostgREST. The fake must build root and embedded objects solely from the
+  requested projection. **Fix:** added a depth-aware projection splitter and now construct both root
+  rows and `users(...)` objects only from selected fields, including correct `*` behavior. Three fake
+  contract tests cover omitted root fields, omitted relations, and omitted embedded fields. Sabotage-
+  checked by dropping `side` from the shipped route query: three image tests failed, then passed again
+  after restoration.
