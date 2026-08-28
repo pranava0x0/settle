@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { APP_NAME, ROUTES } from "@/lib/constants";
+import { APP_NAME, NAV_DASHBOARD_LABEL, ROUTES } from "@/lib/constants";
 import { buttonVariants } from "@/components/ui/button-variants";
 import { SignOutButton } from "@/components/sign-out-button";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -27,7 +27,7 @@ export const Header = async () => {
                 href={ROUTES.DASHBOARD}
                 className={buttonVariants({ variant: "ghost", size: "sm" })}
               >
-                My debates
+                {NAV_DASHBOARD_LABEL}
               </Link>
               <SignOutButton />
             </>
