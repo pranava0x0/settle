@@ -1,11 +1,20 @@
 import { describe, it, expect } from "vitest";
-import { maskPhone, resolveVoterLabels, type RawVoter } from "../voter-identity";
+import {
+  countUnreadableProfiles,
+  maskPhone,
+  resolveVoterLabels,
+  type RawVoter,
+} from "../voter-identity";
 
 const voter = (overrides: Partial<RawVoter> = {}): RawVoter => ({
   side: "a",
   display_name: null,
   phone: null,
   voted_at: "2026-08-01T00:00:00.000Z",
+  // Default to a profile that WAS readable and simply has no name — that is a
+  // genuine anonymous voter. Tests that mean "the read was refused" must opt in
+  // with profile_readable: false, so the two never blur together again.
+  profile_readable: true,
   ...overrides,
 });
 
@@ -130,5 +139,39 @@ describe("resolveVoterLabels", () => {
 
   it("handles an empty voter list", () => {
     expect(resolveVoterLabels([])).toEqual([]);
+  });
+});
+
+describe("countUnreadableProfiles", () => {
+  it("counts nothing when every profile was readable", () => {
+    const voters = [voter(), voter({ display_name: "Ada" })];
+    expect(countUnreadableProfiles(voters)).toBe(0);
+  });
+
+  it("does not count a readable profile that merely has no name", () => {
+    expect(countUnreadableProfiles([voter({ display_name: null })])).toBe(0);
+  });
+
+  it("counts profiles the query was refused", () => {
+    const voters = [
+      voter({ profile_readable: false }),
+      voter({ display_name: "Ada" }),
+      voter({ profile_readable: false }),
+    ];
+    expect(countUnreadableProfiles(voters)).toBe(voters.length - 1);
+  });
+
+  it("flags the all-refused case that renders as everyone-is-anonymous", () => {
+    // The exact production shape: names exist in the DB, the read is blocked,
+    // and every label degrades to "Anonymous #N". The labels alone cannot tell
+    // you anything is wrong — the count is the only signal.
+    const voters = [
+      voter({ profile_readable: false }),
+      voter({ profile_readable: false }),
+    ];
+    const labels = resolveVoterLabels(voters).map((v) => v.label);
+
+    expect(labels.every((l) => l.startsWith("Anonymous"))).toBe(true);
+    expect(countUnreadableProfiles(voters)).toBe(voters.length);
   });
 });
