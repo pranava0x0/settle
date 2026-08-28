@@ -307,6 +307,16 @@ Append a note here or to `issues.md` in this shape: what I expected / what happe
   resolver already served.** A privacy fix that widens a value is a privacy regression wherever the
   reader is broader — and "it returns a PNG" is not an access control.
 
+- **A protected preview deployment answers 200 with an identical login page for every path, so a
+  preview smoke test passes on URLs that were never served.** Curling nine routes against a Vercel
+  preview returned `200` for all of them — including `/icon-512.png` and `/manifest.json` — and every
+  response was the same ~341KB `text/html` Vercel SSO page. Reading that as a pass would have "verified"
+  an image fix against a login form. The tell was uniform byte counts and a `text/html` content type on
+  paths that must return `image/png`; **assert the content type and a size that varies per route, never
+  the status code alone.** This is the second instance of one pattern in a single session (the first
+  being a documented production URL that belonged to a third party and also answered 200): *a 200 means
+  something answered, never that the thing you wanted answered.*
+
 **This stack's specifics:**
 
 - **`/apple-touch-icon.png` is not the path in the App Router — `src/app/apple-icon.png` is.** Next
