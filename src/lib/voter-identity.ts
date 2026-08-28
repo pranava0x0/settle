@@ -1,3 +1,5 @@
+import { isExpired } from "@/lib/utils";
+
 /**
  * Voter identity resolution.
  *
@@ -20,6 +22,42 @@
  */
 export const buildVoteLoginRedirect = (slug: string, side: "a" | "b"): string =>
   `/login?redirect=${encodeURIComponent(`/s/${slug}?vote=${side}`)}`;
+
+/**
+ * May this viewer see WHO voted, as opposed to how many?
+ *
+ * Shared because it is enforced in two places that cannot rely on RLS to agree:
+ * `/s/[slug]/page.tsx` and the shareable result image at
+ * `/api/og/result/[slug]`. The image route reads voters with the ADMIN client
+ * on purpose -- the masked-phone rung needs a column revoked from anon and
+ * authenticated -- so RLS is not a backstop there, and a drift between the two
+ * predicates is a disclosure hole rather than a cosmetic inconsistency.
+ *
+ * This repo has already paid for the duplicated-predicate pattern once: the
+ * dashboard bucketed on `status === "open"` while the card derived its badge
+ * from `isExpired()`, and they disagreed for exactly the row shape lazy closing
+ * guarantees (ISSUE-045). That one only produced a wrong badge. This one would
+ * hand out a voter roster.
+ */
+export const canSeeVoterIdentities = ({
+  viewerId,
+  creatorId,
+  status,
+  expiresAt,
+  viewerHasVoted,
+}: {
+  viewerId: string | null | undefined;
+  creatorId: string;
+  status: string;
+  expiresAt: string | Date;
+  viewerHasVoted: boolean;
+}): boolean => {
+  // The creator sees the room at any time; everyone else must have voted, and
+  // must wait until voting is over.
+  const isCreator = !!viewerId && viewerId === creatorId;
+  const settled = status !== "open" || isExpired(expiresAt);
+  return isCreator || (settled && viewerHasVoted);
+};
 
 export type RawVoter = {
   side: "a" | "b";

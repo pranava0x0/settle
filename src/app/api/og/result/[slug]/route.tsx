@@ -1,8 +1,8 @@
 import { ImageResponse } from "next/og";
 import { createClient } from "@/lib/supabase/server";
-import { isExpired } from "@/lib/utils";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
+  canSeeVoterIdentities,
   countUnreadableProfiles,
   resolveVoterLabels,
   type RawVoter,
@@ -52,10 +52,6 @@ export async function GET(
     data: { user },
   } = await supabase.auth.getUser();
 
-  const isCreator = !!user && user.id === squabble.creator_id;
-  const showResults =
-    squabble.status !== "open" || isExpired(squabble.expires_at);
-
   let hasVoted = false;
   if (user) {
     const { data: ownVote } = await supabase
@@ -67,7 +63,13 @@ export async function GET(
     hasVoted = !!ownVote;
   }
 
-  const shouldShowVoters = isCreator || (showResults && hasVoted);
+  const shouldShowVoters = canSeeVoterIdentities({
+    viewerId: user?.id,
+    creatorId: squabble.creator_id,
+    status: squabble.status,
+    expiresAt: squabble.expires_at,
+    viewerHasVoted: hasVoted,
+  });
 
   // Voter names resolve through the same chain as the page — display_name ->
   // masked phone -> stable "Anonymous #N". Rendering a bare "Anonymous" here

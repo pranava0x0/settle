@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
+  canSeeVoterIdentities,
   countUnreadableProfiles,
   resolveVoterLabels,
   type LabeledVoter,
@@ -176,7 +177,13 @@ export default async function SquabblePage({ params, searchParams }: PageProps) 
 
   // Fetch voter breakdown — creator always, other voters after close
   const isCreator = user?.id === squabble.creator_id;
-  const shouldShowVoters = isCreator || (showResults && !!userVote);
+  const shouldShowVoters = canSeeVoterIdentities({
+    viewerId: user?.id,
+    creatorId: squabble.creator_id,
+    status: squabble.status,
+    expiresAt: squabble.expires_at,
+    viewerHasVoted: !!userVote,
+  });
   let voters: LabeledVoter[] = [];
   if (shouldShowVoters) {
     // Read voters with the admin client so phone is available for the masked
